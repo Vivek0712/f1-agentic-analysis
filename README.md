@@ -33,7 +33,7 @@ agents receive structured payloads and return short briefs, and a
 groundedness check verifies that every numeric claim in a brief exists in
 the payload. An agent with no tools cannot hallucinate a retrieval.
 
-![Architecture](blog/figures/fig1_architecture.png)
+![Architecture](blog/figures/part1_fig1_architecture.png)
 
 ## What the deterministic layer computes
 
@@ -49,9 +49,9 @@ the payload. An agent with no tools cannot hallucinate a retrieval.
 - **Counterfactual pit curves.** The chart below is the race's strategic
   story in one figure.
 
-![Counterfactual pit curves](blog/figures/fig3_counterfactual.png)
+![Counterfactual pit curves](blog/figures/part1_fig4_counterfactual.png)
 
-![Undercut ledger](blog/figures/fig5_undercut_ledger.png)
+![Undercut ledger](blog/figures/part1_fig3_undercut_ledger.png)
 
 ## Predictions vs actuals: the frozen-clock backtest
 
@@ -68,7 +68,7 @@ The early positive bias is itself a shipped finding: fits younger than ten
 clean laps over-read tyre warmup and track evolution as degradation, so
 agent briefs mark those slopes as provisional.
 
-![Backtest](blog/figures/fig6_backtest.png)
+![Backtest](blog/figures/part1_fig6_backtest.png)
 
 ## The seven agents
 

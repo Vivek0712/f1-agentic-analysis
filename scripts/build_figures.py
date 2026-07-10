@@ -87,7 +87,7 @@ def fig_architecture():
     arrow(83, 32, 83, 26, YELLOW)
     arrow(17, 12, 17, 8); arrow(50, 12, 50, 8); arrow(83, 12, 83, 8)
     ax.set_title("Latency-tiered agentic race analysis on Amazon Bedrock", loc="left", pad=12)
-    fig.savefig(OUT / "fig1_architecture.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig1_architecture.png"); plt.close(fig)
 
 
 def fig_gap_trace():
@@ -112,7 +112,7 @@ def fig_gap_trace():
     ax.grid(True, alpha=0.6)
     ax.legend(loc="lower left", ncol=6, frameon=False, fontsize=8)
     ax.set_title("2024 Spanish Grand Prix: gap to leader, top six finishers (markers: pit stops)", loc="left")
-    fig.savefig(OUT / "fig2_gap_trace.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig2_gap_trace.png"); plt.close(fig)
 
 
 def fig_counterfactual():
@@ -133,7 +133,7 @@ def fig_counterfactual():
     ax.set_xlabel("first pit lap"); ax.set_ylabel("modeled race time delta (s)")
     ax.grid(True, alpha=0.6); ax.legend(frameon=False, fontsize=8, loc="upper center")
     ax.set_title("Counterfactual pit lap: VER stopped 0.06s from optimum, NOR left 4.38s (finish gap: 2.22s)", loc="left")
-    fig.savefig(OUT / "fig3_counterfactual.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig4_counterfactual.png"); plt.close(fig)
 
 
 def fig_deg_anomalies():
@@ -161,7 +161,7 @@ def fig_deg_anomalies():
     ax.set_ylabel("stints")
     ax.set_title("62 stint fits: slope distribution with anomaly flags (|robust z| >= 1.5)", loc="left")
     ax.grid(True, axis="y", alpha=0.6)
-    fig.savefig(OUT / "fig4_deg_anomalies.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig5_deg_anomalies.png"); plt.close(fig)
 
 
 def fig_undercut():
@@ -183,7 +183,7 @@ def fig_undercut():
     ax.set_xlabel("realized gap swing across the pit cycle (s)")
     ax.set_title("Undercut ledger: largest realized swings of 18 measured pit battles", loc="left")
     ax.grid(True, axis="x", alpha=0.6)
-    fig.savefig(OUT / "fig5_undercut_ledger.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig3_undercut_ledger.png"); plt.close(fig)
 
 
 def fig_backtest():
@@ -221,7 +221,7 @@ def fig_backtest():
     ax2.set_title("Open undercut calls: forecast vs outcome", loc="left")
     ax2.grid(True, axis="y", alpha=0.6)
     fig.tight_layout()
-    fig.savefig(OUT / "fig6_backtest.png"); plt.close(fig)
+    fig.savefig(OUT / "part1_fig6_backtest.png"); plt.close(fig)
 
 
 if __name__ == "__main__":
