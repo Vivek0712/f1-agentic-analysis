@@ -251,5 +251,6 @@ through F1-licensed channels and swap the loader.
 
 ## License
 
-MIT. Built by [Aivar Innovations](https://aivar.io) as a reference
+MIT. Built by Vivek Raja P S, AWS AI Hero, a lifelong Sebastian Vettel and
+Fernando Alonso fan, currently supporting Ferrari and Max: a reference
 implementation of governed, latency-tiered agent design on Amazon Bedrock.
