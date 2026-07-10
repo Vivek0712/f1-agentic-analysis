@@ -5,6 +5,10 @@ deterministic analysis layer computes every number, seven Strands agents on
 Amazon Bedrock turn those numbers into pit-wall briefs, and a frozen-clock
 backtest proves the predictions against realized race outcomes.**
 
+**Live app: [pjjswsm6vf.us-east-1.awsapprunner.com](https://pjjswsm6vf.us-east-1.awsapprunner.com)** - pick any grand prix since
+2011, drill into sessions, drivers, or the season, and open the 2026
+championship predictor.
+
 Built on real telemetry. On the 2024 Spanish Grand Prix, the counterfactual
 model priced Max Verstappen's first stop within 0.06s of its optimum, showed
 Lando Norris left 4.38s of modeled race time on the table against a 2.22s
