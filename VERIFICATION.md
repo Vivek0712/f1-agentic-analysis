@@ -38,7 +38,7 @@ strands-agents (the macOS system python3 is 3.9 and cannot install it).
 | tests/fixtures/openf1_laps_9839_44.csv | PASS | pytest -q -k openf1: 1 passed; stops at laps 8 and 31 |
 | outputs/2024_spanish/*.json, batch_input.jsonl | PASS | untouched; reproduction diff below |
 | README.md | PASS | every decimal cited near pit loss/stint/swing/MAE/bias/z/table keywords exists in outputs JSON; all image refs resolve; quickstart commands match the CLIs; repo layout section matches the tree |
-| blog/aws-ml-blog-draft.md | PASS | same numeric and image checks pass; HAM L16 vs PIA L21 15.87s, HAM vs LEC 10.54s, NOR 0.063 s/lap, BOT 0.275/z 4.79/field 0.069, backtest table all verified against outputs |
+| blog/aws-ml-blog-part1.md (local, untracked) | PASS | same numeric and image checks pass; HAM L16 vs PIA L21 15.87s, HAM vs LEC 10.54s, NOR 0.063 s/lap, BOT 0.275/z 4.79/field 0.069, backtest table all verified against outputs |
 | blog/figures/*.png (6) | PASS | regenerated without warnings from unchanged outputs |
 | docs/architecture.drawio | PASS | parses as XML; contains the AgentCore Memory node ("AgentCore Memory / previous brief + session summary / /summaries/{actorId}/{sessionId}") |
 | docs/img/dashboard.png | FIXED | the published image was a broken render (empty stat strip, blank charts: captured before JavaScript ran); replaced with a correct full-page render of the rebuilt dashboard |
