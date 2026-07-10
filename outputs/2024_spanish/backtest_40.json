@@ -1,0 +1,188 @@
+{
+  "protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end",
+  "freeze_lap": 40,
+  "deg_continuation": [
+    {
+      "code": "ALO",
+      "stint": 2,
+      "fit_window": [
+        20,
+        40
+      ],
+      "scored_laps": [
+        41,
+        44
+      ],
+      "n_scored": 4,
+      "n_fit_clean_laps": 19,
+      "pred_slope_s_per_lap": 0.081,
+      "mae_s": 1.009,
+      "bias_s": 1.009
+    },
+    {
+      "code": "PER",
+      "stint": 3,
+      "fit_window": [
+        32,
+        40
+      ],
+      "scored_laps": [
+        41,
+        48
+      ],
+      "n_scored": 8,
+      "n_fit_clean_laps": 7,
+      "pred_slope_s_per_lap": 0.0653,
+      "mae_s": 0.268,
+      "bias_s": -0.226
+    },
+    {
+      "code": "BOT",
+      "stint": 3,
+      "fit_window": [
+        29,
+        40
+      ],
+      "scored_laps": [
+        41,
+        64
+      ],
+      "n_scored": 24,
+      "n_fit_clean_laps": 10,
+      "pred_slope_s_per_lap": 0.1154,
+      "mae_s": 1.134,
+      "bias_s": 0.455
+    },
+    {
+      "code": "MAG",
+      "stint": 3,
+      "fit_window": [
+        30,
+        40
+      ],
+      "scored_laps": [
+        41,
+        64
+      ],
+      "n_scored": 24,
+      "n_fit_clean_laps": 9,
+      "pred_slope_s_per_lap": 0.1322,
+      "mae_s": 0.836,
+      "bias_s": 0.486
+    },
+    {
+      "code": "VER",
+      "stint": 2,
+      "fit_window": [
+        18,
+        40
+      ],
+      "scored_laps": [
+        41,
+        43
+      ],
+      "n_scored": 3,
+      "n_fit_clean_laps": 21,
+      "pred_slope_s_per_lap": 0.0518,
+      "mae_s": 0.236,
+      "bias_s": 0.028
+    },
+    {
+      "code": "LEC",
+      "stint": 2,
+      "fit_window": [
+        25,
+        40
+      ],
+      "scored_laps": [
+        41,
+        46
+      ],
+      "n_scored": 6,
+      "n_fit_clean_laps": 14,
+      "pred_slope_s_per_lap": 0.0729,
+      "mae_s": 0.096,
+      "bias_s": 0.003
+    },
+    {
+      "code": "NOR",
+      "stint": 2,
+      "fit_window": [
+        24,
+        40
+      ],
+      "scored_laps": [
+        41,
+        46
+      ],
+      "n_scored": 6,
+      "n_fit_clean_laps": 15,
+      "pred_slope_s_per_lap": 0.0408,
+      "mae_s": 0.257,
+      "bias_s": 0.257
+    },
+    {
+      "code": "TSU",
+      "stint": 3,
+      "fit_window": [
+        28,
+        40
+      ],
+      "scored_laps": [
+        41,
+        43
+      ],
+      "n_scored": 3,
+      "n_fit_clean_laps": 11,
+      "pred_slope_s_per_lap": 0.184,
+      "mae_s": 1.285,
+      "bias_s": -0.891
+    },
+    {
+      "code": "PIA",
+      "stint": 2,
+      "fit_window": [
+        22,
+        40
+      ],
+      "scored_laps": [
+        41,
+        45
+      ],
+      "n_scored": 5,
+      "n_fit_clean_laps": 17,
+      "pred_slope_s_per_lap": 0.0381,
+      "mae_s": 0.306,
+      "bias_s": -0.206
+    }
+  ],
+  "deg_summary": {
+    "n_stints": 9,
+    "mae_s": 0.603,
+    "bias_s": 0.102,
+    "mature_fits_mae_s": 0.618,
+    "mature_fits_n": 7
+  },
+  "undercut_calls": [
+    {
+      "attacker": "Lance Stroll",
+      "defender": "Daniel Ricciardo",
+      "attacker_pit_lap": 37,
+      "defender_pit_lap": 42,
+      "observed_by_freeze_s": -15.86,
+      "modeled_remainder_s": 25.0,
+      "predicted_swing_s": 9.14,
+      "realized_swing_s": 8.04,
+      "sign_correct": true,
+      "abs_error_s": 1.1
+    }
+  ],
+  "undercut_summary": {
+    "n_calls": 1,
+    "sign_hit_rate": 1.0,
+    "mean_abs_error_s": 1.1
+  },
+  "pit_window": [],
+  "session": "Spanish Grand Prix",
+  "pit_loss_s": 22.61
+}

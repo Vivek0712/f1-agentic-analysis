@@ -1,0 +1,277 @@
+{
+  "protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end",
+  "freeze_lap": 30,
+  "deg_continuation": [
+    {
+      "code": "HAM",
+      "stint": 2,
+      "fit_window": [
+        17,
+        30
+      ],
+      "scored_laps": [
+        31,
+        42
+      ],
+      "n_scored": 12,
+      "n_fit_clean_laps": 12,
+      "pred_slope_s_per_lap": 0.0932,
+      "mae_s": 0.562,
+      "bias_s": 0.332
+    },
+    {
+      "code": "ALO",
+      "stint": 2,
+      "fit_window": [
+        20,
+        30
+      ],
+      "scored_laps": [
+        31,
+        44
+      ],
+      "n_scored": 14,
+      "n_fit_clean_laps": 9,
+      "pred_slope_s_per_lap": 0.1774,
+      "mae_s": 1.676,
+      "bias_s": 1.676
+    },
+    {
+      "code": "HUL",
+      "stint": 2,
+      "fit_window": [
+        13,
+        30
+      ],
+      "scored_laps": [
+        31,
+        37
+      ],
+      "n_scored": 7,
+      "n_fit_clean_laps": 16,
+      "pred_slope_s_per_lap": 0.0725,
+      "mae_s": 0.229,
+      "bias_s": 0.156
+    },
+    {
+      "code": "RIC",
+      "stint": 2,
+      "fit_window": [
+        17,
+        30
+      ],
+      "scored_laps": [
+        31,
+        41
+      ],
+      "n_scored": 11,
+      "n_fit_clean_laps": 12,
+      "pred_slope_s_per_lap": 0.0951,
+      "mae_s": 0.474,
+      "bias_s": 0.339
+    },
+    {
+      "code": "VER",
+      "stint": 2,
+      "fit_window": [
+        18,
+        30
+      ],
+      "scored_laps": [
+        31,
+        43
+      ],
+      "n_scored": 13,
+      "n_fit_clean_laps": 11,
+      "pred_slope_s_per_lap": 0.0491,
+      "mae_s": 0.251,
+      "bias_s": -0.24
+    },
+    {
+      "code": "SAI",
+      "stint": 2,
+      "fit_window": [
+        16,
+        30
+      ],
+      "scored_laps": [
+        31,
+        35
+      ],
+      "n_scored": 5,
+      "n_fit_clean_laps": 13,
+      "pred_slope_s_per_lap": 0.0753,
+      "mae_s": 0.255,
+      "bias_s": 0.103
+    },
+    {
+      "code": "OCO",
+      "stint": 2,
+      "fit_window": [
+        14,
+        30
+      ],
+      "scored_laps": [
+        31,
+        36
+      ],
+      "n_scored": 6,
+      "n_fit_clean_laps": 15,
+      "pred_slope_s_per_lap": 0.1575,
+      "mae_s": 0.568,
+      "bias_s": 0.568
+    },
+    {
+      "code": "STR",
+      "stint": 2,
+      "fit_window": [
+        18,
+        30
+      ],
+      "scored_laps": [
+        31,
+        36
+      ],
+      "n_scored": 6,
+      "n_fit_clean_laps": 11,
+      "pred_slope_s_per_lap": 0.0907,
+      "mae_s": 0.382,
+      "bias_s": 0.123
+    },
+    {
+      "code": "GAS",
+      "stint": 2,
+      "fit_window": [
+        15,
+        30
+      ],
+      "scored_laps": [
+        31,
+        37
+      ],
+      "n_scored": 7,
+      "n_fit_clean_laps": 14,
+      "pred_slope_s_per_lap": 0.1246,
+      "mae_s": 0.409,
+      "bias_s": 0.052
+    },
+    {
+      "code": "NOR",
+      "stint": 2,
+      "fit_window": [
+        24,
+        30
+      ],
+      "scored_laps": [
+        31,
+        46
+      ],
+      "n_scored": 16,
+      "n_fit_clean_laps": 5,
+      "pred_slope_s_per_lap": 0.3059,
+      "mae_s": 3.153,
+      "bias_s": 3.153
+    },
+    {
+      "code": "RUS",
+      "stint": 2,
+      "fit_window": [
+        16,
+        30
+      ],
+      "scored_laps": [
+        31,
+        35
+      ],
+      "n_scored": 5,
+      "n_fit_clean_laps": 13,
+      "pred_slope_s_per_lap": 0.0789,
+      "mae_s": 0.428,
+      "bias_s": -0.331
+    },
+    {
+      "code": "ALB",
+      "stint": 2,
+      "fit_window": [
+        19,
+        30
+      ],
+      "scored_laps": [
+        31,
+        42
+      ],
+      "n_scored": 12,
+      "n_fit_clean_laps": 10,
+      "pred_slope_s_per_lap": 0.21,
+      "mae_s": 1.238,
+      "bias_s": 1.165
+    },
+    {
+      "code": "ZHO",
+      "stint": 2,
+      "fit_window": [
+        10,
+        30
+      ],
+      "scored_laps": [
+        31,
+        40
+      ],
+      "n_scored": 10,
+      "n_fit_clean_laps": 19,
+      "pred_slope_s_per_lap": 0.056,
+      "mae_s": 0.305,
+      "bias_s": 0.058
+    },
+    {
+      "code": "PIA",
+      "stint": 2,
+      "fit_window": [
+        22,
+        30
+      ],
+      "scored_laps": [
+        31,
+        45
+      ],
+      "n_scored": 15,
+      "n_fit_clean_laps": 7,
+      "pred_slope_s_per_lap": 0.133,
+      "mae_s": 0.919,
+      "bias_s": 0.898
+    },
+    {
+      "code": "SAR",
+      "stint": 2,
+      "fit_window": [
+        15,
+        30
+      ],
+      "scored_laps": [
+        31,
+        33
+      ],
+      "n_scored": 3,
+      "n_fit_clean_laps": 14,
+      "pred_slope_s_per_lap": 0.1896,
+      "mae_s": 0.508,
+      "bias_s": 0.508
+    }
+  ],
+  "deg_summary": {
+    "n_stints": 15,
+    "mae_s": 0.757,
+    "bias_s": 0.571,
+    "mature_fits_mae_s": 0.467,
+    "mature_fits_n": 12
+  },
+  "undercut_calls": [],
+  "undercut_summary": {
+    "n_calls": 0,
+    "sign_hit_rate": null,
+    "mean_abs_error_s": null
+  },
+  "pit_window": [],
+  "session": "Spanish Grand Prix",
+  "pit_loss_s": 22.61
+}

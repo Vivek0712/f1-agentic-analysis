@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 Agentic Race Analysis - 2024 Spanish Grand Prix</title>
+<script src="chart.umd.min.js"></script>
+<script>
+// vendored copy first; fall back to the CDN only if it is missing
+if (!window.Chart) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>');
+</script>
+<style>
+:root{
+  --bg:#101318; --panel:#171B22; --panel2:#1D222B; --line:#2A303B;
+  --txt:#E8ECF2; --dim:#8B95A5; --faint:#5A6373;
+  --purple:#B57BFF; --green:#3DDC84; --yellow:#F5C542; --red:#F0524D;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,Menlo,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+h1{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:6px 0 2px}
+h1 .yr{color:var(--purple)}
+.sub{color:var(--dim);font-size:13px}
+.selbar{display:none;gap:8px;margin-top:16px;align-items:center;font-family:var(--mono);flex-wrap:wrap;position:sticky;top:0;z-index:40;background:var(--bg);padding:10px 0;border-bottom:1px solid transparent}
+.selbar.stuck{border-bottom-color:var(--line)}
+.selbar select,.selbar button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:6px 10px;font-family:var(--mono);font-size:12px;border-radius:2px}
+.selbar button{cursor:pointer}
+.selbar button:hover{border-color:var(--purple)}
+.selbar button:disabled{color:var(--faint);cursor:default;border-color:var(--line)}
+.selbar .st{font-size:11px;color:var(--dim)}
+.statstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:18px}
+.stat{background:var(--panel);padding:12px 14px}
+.stat .v{font-family:var(--mono);font-size:22px;font-weight:600}
+.stat .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+section{margin-top:34px}
+.seclabel{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.seclabel h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.seclabel .tier{font-family:var(--mono);font-size:10px;padding:2px 8px;border:1px solid var(--line);border-radius:2px;color:var(--dim);letter-spacing:.08em}
+.tier.slow{color:var(--green);border-color:#234534}
+.tier.post{color:var(--purple);border-color:#3d2f5c}
+.tier.cross{color:var(--yellow);border-color:#57491e}
+.seclabel .note{font-size:12px;color:var(--faint)}
+.panel{background:var(--panel);border:1px solid var(--line);padding:18px}
+.chartbox{position:relative;height:360px}
+.chartbox.short{height:300px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+th{font-family:var(--sans);text-align:left;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:7px 10px;border-bottom:1px solid #20252e}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right}th.num{text-align:right}
+.pos{color:var(--green)}.neg{color:var(--red)}.best{color:var(--purple)}
+.pill{display:inline-block;font-size:10px;font-family:var(--mono);padding:1px 7px;border-radius:2px;letter-spacing:.05em}
+.pill.ok{background:#12301f;color:var(--green)}
+.pill.fail{background:#3a1512;color:var(--red)}
+.pill.warn{background:#3a3110;color:var(--yellow)}
+.brief{background:var(--panel2);border-left:3px solid var(--purple);padding:14px 16px;margin-top:12px}
+.brief.g{border-left-color:var(--green)}
+.brief.y{border-left-color:var(--yellow)}
+.brief.r{border-left-color:var(--red)}
+.brief h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;justify-content:space-between}
+.brief h3 .m{color:var(--faint);font-family:var(--mono);font-size:10px;text-transform:none;letter-spacing:0}
+.brief p{font-size:13px;color:#C9D1DE;white-space:pre-line}
+.callout{display:flex;gap:26px;align-items:stretch;background:linear-gradient(90deg,#1c1530 0%,var(--panel) 55%);border:1px solid #3d2f5c;padding:20px}
+.callout .big{font-family:var(--mono);font-size:44px;font-weight:700;color:var(--purple);line-height:1}
+.callout .cap{font-size:12px;color:var(--dim);margin-top:6px;max-width:230px}
+.callout .div{width:1px;background:var(--line)}
+footer{margin-top:56px;border-top:1px solid var(--line);padding-top:14px;color:var(--faint);font-size:11.5px;font-family:var(--mono)}
+a{color:var(--purple);text-decoration:none}
+.legendnote{font-size:11px;color:var(--faint);margin-top:8px;font-family:var(--mono)}
+header{position:relative}
+.viewbtn{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 10px;font-family:var(--mono);font-size:12px;border-radius:2px;cursor:pointer}
+.viewbtn.on{color:var(--purple);border-color:#3d2f5c;background:var(--panel2)}
+.predbadge{position:absolute;top:0;right:0;display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--txt);background:linear-gradient(90deg,#1c1530,#171B22);border:1px solid #3d2f5c;border-radius:3px;padding:8px 12px;cursor:pointer}
+.predbadge:hover{border-color:var(--purple)}
+.predbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
+.predbadge .km{color:var(--purple)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.modal{display:none;position:fixed;inset:0;background:rgba(8,10,14,.82);z-index:50;overflow:auto}
+.modalbox{max-width:860px;margin:48px auto;background:var(--panel);border:1px solid #3d2f5c;padding:24px}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.mhead h2{font-size:17px;letter-spacing:.06em;text-transform:uppercase}
+.mhead button{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer}
+.probbar{background:#2a1f45;height:10px;border-radius:2px;overflow:hidden;min-width:90px}
+.probbar i{display:block;height:100%;background:var(--purple)}
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:14px}
+.mnote{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:14px;line-height:1.6}
+@media(max-width:1120px){.predbadge{position:static;display:inline-flex;margin-top:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow" id="eyebrow">F1 Agentic Race Analysis &middot; deterministic layer + Bedrock agent briefs</div>
+  <h1 id="hdrTitle"><span class="yr">2024</span> Spanish Grand Prix</h1>
+  <div class="sub" id="hdrSub">Circuit de Barcelona-Catalunya &middot; 66 laps &middot; Ergast-schema lap data, fits reproducible from <span style="font-family:var(--mono)">results.json</span></div>
+  <div class="predbadge" id="predBadge"><span class="dot"></span>2026 CHAMPIONSHIP PREDICTOR<span class="km">know more -&gt;</span></div>
+  <div class="selbar" id="selbar">
+    <button class="viewbtn on" id="viewRace">grand prix</button>
+    <button class="viewbtn" id="viewDriver">driver</button>
+    <button class="viewbtn" id="viewSeason">season</button>
+    <select id="selSeason"></select>
+    <select id="selRace"></select>
+    <select id="selSession" style="display:none"></select>
+    <select id="selDriver" style="display:none"></select>
+    <button id="btnLoad" title="reload the current selection">reload</button>
+    <button id="btnRegen" title="run the deterministic pipeline + agent briefs for this race">regenerate</button>
+    <span class="st" id="selStatus"></span>
+  </div>
+  <div class="statstrip" id="statstrip"></div>
+</header>
+
+<section id="secEmpty" style="display:none">
+  <div class="panel" style="font-family:var(--mono);color:var(--dim);font-size:13px;line-height:1.7" id="emptyText"></div>
+</section>
+
+<section id="secSessionView" style="display:none">
+  <div class="seclabel"><h2 id="sessTitle">Session pace</h2><span class="tier slow">deterministic</span><span class="note" id="sessNote">best lap, clean median, long-run slope; undercuts and counterfactuals exist only in races</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="sessTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="sessChart"></canvas></div></div>
+      <div class="brief"><h3>Stint Analyst <span class="m">payload: session pace + long-run fits</span></h3><p id="sessBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secDriverView" style="display:none">
+  <div class="seclabel"><h2 id="drvTitle">Driver season</h2><span class="tier post">drill-down</span><span class="note">one driver across every grand prix of the season</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="drvSeasonTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="drvSeasonChart"></canvas></div></div>
+      <div class="brief g"><h3>Driver Season Review <span class="m">payload: per-race rows + standings neighbours</span></h3><p id="drvBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secSeasonView" style="display:none">
+  <div class="seclabel"><h2 id="seasonTitle">Season standings</h2><span class="tier cross">drill-down</span><span class="note">points across drivers; race and sprint points combined</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="seasonTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="seasonChart"></canvas></div></div>
+      <div class="brief y"><h3>Season Analyst <span class="m">payload: standings + last-three-rounds form</span></h3><p id="seasonBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secTrace">
+  <div class="seclabel"><h2>Pit-wall trace</h2><span class="tier slow">slow loop</span><span class="note">gap to leader, top six finishers; markers are pit stops</span></div>
+  <div class="panel"><div class="chartbox"><canvas id="gapChart"></canvas></div>
+  <div class="legendnote">vertical drops across pit cycles are the undercut swings measured in the ledger below</div></div>
+</section>
+
+<section id="secCF">
+  <div class="seclabel"><h2>The stop that priced the win</h2><span class="tier post">post session</span><span class="note">counterfactual pit-lap model: fixed pit loss, linear per-stint deg, no traffic interaction</span></div>
+  <div class="callout">
+    <div><div class="big" id="cfBig"></div><div class="cap" id="cfCapLeft">modeled race time Norris left on the table by stopping on L23 instead of L17</div></div>
+    <div class="div" id="cfDiv"></div>
+    <div id="cfGapBox"><div class="big" style="color:var(--txt)" id="cfGap"></div><div class="cap" id="cfCapGap">actual finishing gap to Verstappen. Under the model's assumptions, the win was live at the first stop.</div></div>
+    <div class="div"></div>
+    <div style="flex:1;min-width:280px"><div class="chartbox short"><canvas id="cfChart"></canvas></div></div>
+  </div>
+</section>
+
+<section id="secUndercut">
+  <div class="seclabel"><h2>Undercut ledger</h2><span class="tier slow">slow loop</span><span class="note">measured gap swings across pit cycles, rival pairs within 4s at the in-lap</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="ucTable"></table></div>
+    <div>
+      <div class="brief g"><h3>Rival Watcher <span class="m">payload: undercut_events + pit_loss</span></h3><p id="briefRival"></p></div>
+      <div class="brief"><h3>Stint Analyst <span class="m">payload: stint_fits + fuel_slope</span></h3><p id="briefStint"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secAnom">
+  <div class="seclabel"><h2>Degradation anomalies</h2><span class="tier slow">slow loop</span><span class="note">robust z vs field slope distribution; trigger threshold |z| &ge; 1.5</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="anomTable"></table></div>
+    <div class="brief y"><h3>Deg Explainer <span class="m" id="degTrigger">trigger: BOT stint 2, z=4.79</span></h3><p id="briefDeg"></p></div>
+  </div>
+</section>
+
+<section id="secDrivers">
+  <div class="seclabel"><h2>Driver metrics</h2><span class="tier post">post session</span><span class="note">fuel-corrected pace vs in-stint consistency, this race</span></div>
+  <div class="grid2">
+    <div class="panel"><div class="chartbox short"><canvas id="drvChart"></canvas></div></div>
+    <div class="brief"><h3><span id="coachLabel">Driver Coach: NOR</span> <span class="m">payload: driver_metrics + counterfactuals</span></h3><p id="briefCoach"></p></div>
+  </div>
+</section>
+
+<section id="secTracks">
+  <div class="seclabel"><h2>Track archetypes</h2><span class="tier cross">cross season</span><span class="note">25 circuits, 2022-2024: tyre stress vs race neutralisation</span></div>
+  <div class="grid2">
+    <div class="panel"><div class="chartbox short"><canvas id="trkChart"></canvas></div></div>
+    <div class="brief y"><h3>Track Historian <span class="m" id="trackFocus">payload: track_profiles, focus=Barcelona</span></h3><p id="briefTrack"></p></div>
+  </div>
+</section>
+
+<section id="secCompliance">
+  <div class="seclabel"><h2>Compliance gate</h2><span class="tier slow">slow loop</span><span class="note">deterministic rules engine; the agent explains, it never adjudicates</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="compTable"></table></div>
+    <div class="brief r"><h3>Compliance Guardian <span class="m">payload: audit record #2</span></h3><p id="briefComp"></p></div>
+  </div>
+</section>
+
+<section id="secBacktest">
+  <div class="seclabel"><h2>Prediction audit</h2><span class="tier slow">slow loop</span><span class="note">frozen-clock backtest: fits from laps 1..N, scored on laps N+1 onward; no lookahead</span></div>
+  <div class="statstrip" id="btStats"></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="btUcTable"></table></div>
+    <div class="panel" style="padding:0"><table id="btDegTable"></table></div>
+  </div>
+</section>
+
+<section id="secReporter">
+  <div class="seclabel"><h2>Race Reporter</h2><span class="tier post">post session</span><span class="note">full-payload strategy narrative</span></div>
+  <div class="brief"><h3>Strategy story of the race <span class="m">payload: full deterministic output set</span></h3><p id="briefReport"></p></div>
+</section>
+
+<div class="modal" id="predModal">
+  <div class="modalbox">
+    <div class="mhead"><h2 id="predTitle">2026 Championship Predictor</h2><button id="predClose">close</button></div>
+    <div class="panel" style="padding:0"><table id="predTable"></table></div>
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:12px">
+      <span style="color:var(--dim)">path to the title:</span>
+      <select id="predDriver"></select>
+      <button class="viewbtn" id="predBriefBtn">strategist outlook</button>
+      <span class="st" id="predStatus"></span>
+    </div>
+    <div class="statstrip scen" id="predScen"></div>
+    <div class="brief y" style="margin-top:16px"><h3>Championship Strategist <span class="m">payload: projection + title scenario, numbers computed deterministically</span></h3><p id="predBrief">Pick a driver and run the strategist for a grounded outlook.</p></div>
+    <div class="mnote" id="predMethod"></div>
+  </div>
+</div>
+
+<footer>
+  f1-agentic-analysis &middot; deterministic layer: pandas/scipy &middot; agents: Strands Agents on Bedrock AgentCore Runtime with Memory (slow loop) + Bedrock Batch (post/cross), payload-in / brief-out contract &middot; data: Ergast-schema historical dumps + OpenF1 &middot; every number on this page is in results.json
+</footer>
+</div>
+
+<script>
+const BAKED_R = /*__RESULTS__*/;
+const BAKED_B = /*__BRIEFS__*/;
+const BAKED_BT = /*__BACKTESTS__*/;
+
+const C = {purple:'#B57BFF',green:'#3DDC84',yellow:'#F5C542',red:'#F0524D',dim:'#8B95A5',line:'#2A303B',
+  teams:{'VER':'#3671C6','NOR':'#FF8000','LEC':'#E8002D','HAM':'#27F4D2','RUS':'#27B4A2','SAI':'#B8002D','PIA':'#FFB266'}};
+const PALETTE = ['#3671C6','#FF8000','#E8002D','#27F4D2','#27B4A2','#B8002D','#B57BFF','#3DDC84','#F5C542','#58A6FF','#F0524D','#9BE1FF'];
+if (window.Chart){
+  Chart.defaults.color = '#8B95A5';
+  Chart.defaults.borderColor = '#242A34';
+  Chart.defaults.font.family = "ui-monospace,'SF Mono',Consolas,monospace";
+  Chart.defaults.font.size = 11;
+}
+
+let CHARTS = [];
+const el = id => document.getElementById(id);
+const show = (id, on) => { el(id).style.display = on ? '' : 'none'; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const surname = name => String(name || '').split(' ').pop();
+const colorFor = (code, i) => C.teams[code] || PALETTE[i % PALETTE.length];
+const chart = (canvas, cfg) => {
+  if (!window.Chart) return null;  // charts degrade; tables, stats, and briefs still render
+  const c = new Chart(canvas, cfg); CHARTS.push(c); return c;
+};
+
+const BSET = {briefRival:'rival_watcher', briefStint:'stint_analyst', briefDeg:'deg_explainer',
+  briefCoach:'driver_coach', briefTrack:'track_historian', briefComp:'compliance_guardian',
+  briefReport:'race_reporter'};
+
+function setBrief(id, briefs, key){
+  const p = el(id);
+  const v = briefs ? briefs[key] : null;
+  if (typeof v === 'string' && v.trim()){ p.textContent = v; p.style.color = ''; }
+  else { p.textContent = 'Brief not generated for this race. Use regenerate with AWS credentials to invoke the agents.'; p.style.color = 'var(--faint)'; }
+}
+
+let LAST = null;
+const RACE_SECTIONS = ['secTrace','secCF','secUndercut','secAnom','secDrivers','secTracks','secCompliance','secBacktest','secReporter'];
+const DRILL_SECTIONS = ['secEmpty','secSessionView','secDriverView','secSeasonView'];
+
+function setHeader(year, main, subHtml){
+  el('hdrTitle').innerHTML = (year ? `<span class="yr">${esc(year)}</span> ` : '') + esc(main);
+  el('hdrSub').innerHTML = subHtml;
+  document.title = `F1 Agentic Race Analysis - ${year ? year + ' ' : ''}${main}`;
+}
+
+function render(R, B, BACKTESTS){
+  CHARTS.forEach(c => c.destroy()); CHARTS = [];
+  B = B || {}; BACKTESTS = BACKTESTS || [];
+  LAST = {R, B, BT: BACKTESTS};
+  DRILL_SECTIONS.forEach(id => show(id, false));
+  show('statstrip', true);
+
+  // ---- header always mirrors the rendered race
+  const circuit = R.race.circuit || (R.race.name === 'Spanish Grand Prix' ? 'Circuit de Barcelona-Catalunya' : null);
+  setHeader(R.race.year, R.race.name,
+    [circuit && esc(circuit), `${esc(R.race.laps)} laps`, `${esc(R.race.drivers)} drivers`,
+     'fits reproducible from <span style="font-family:var(--mono)">results.json</span>']
+      .filter(Boolean).join(' &middot; '));
+
+  // ---- stat strip
+  const pl = R.pit_loss || {};
+  const strip = [
+    [pl.pit_loss_s != null ? pl.pit_loss_s + 's' : '&ndash;', `pit loss (median, ${pl.n_stops_used ?? 0} stops)`],
+    [R.fuel_slope_s_per_lap + ' s/lap', 'field fuel slope'],
+    [R.stint_fits_full_count ?? R.stint_fits.length, 'stint models fitted'],
+    [R.undercut_events.length, 'pit battles measured'],
+    [(R.deg_anomalies || []).length, 'deg anomalies flagged'],
+    [Object.keys(B).length, 'agent briefs generated'],
+  ];
+  el('statstrip').innerHTML = strip.map(s => `<div class="stat"><div class="v">${s[0]}</div><div class="l">${s[1]}</div></div>`).join('');
+
+  // ---- gap chart
+  const traces = R.lap_traces || {};
+  const codes = Object.keys(traces);
+  show('secTrace', codes.length > 0);
+  if (codes.length){
+    const pitLaps = {};
+    R.stint_fits.forEach(f => { if (!pitLaps[f.code]) pitLaps[f.code] = []; if (f.stint > 1) pitLaps[f.code].push(f.start_lap - 1); });
+    const gapDS = codes.map((code, i) => { const t = traces[code]; return {
+      label: code, data: t.laps.map((l, j) => ({x: l, y: t.gap_s[j]})),
+      borderColor: colorFor(code, i), backgroundColor: colorFor(code, i),
+      borderWidth: 1.8, pointRadius: t.laps.map(l => (pitLaps[code] || []).includes(l) ? 4 : 0),
+      pointStyle: 'rectRot', tension: .25,
+    };});
+    chart(el('gapChart'), {type:'line', data:{datasets: gapDS}, options:{
+      maintainAspectRatio:false, interaction:{mode:'nearest', intersect:false},
+      scales:{x:{type:'linear', title:{display:true, text:'LAP'}, min:1, max:R.race.laps},
+              y:{reverse:true, title:{display:true, text:'GAP TO LEADER (S)'}}},
+      plugins:{legend:{position:'top', labels:{boxWidth:10, boxHeight:10}},
+        tooltip:{callbacks:{label: c => ` ${c.dataset.label}  L${c.parsed.x}  +${c.parsed.y.toFixed(2)}s`}}}
+    }});
+  }
+
+  // ---- counterfactual: the viable run with the most time left on the table
+  const cfs = (R.counterfactuals || []).filter(c => c.viable);
+  const cf = cfs.length ? cfs.reduce((a, b) => Math.abs(b.time_left_on_table_s) > Math.abs(a.time_left_on_table_s) ? b : a) : null;
+  show('secCF', !!cf);
+  if (cf){
+    const dm = R.driver_metrics || [];
+    const cfName = surname((dm.find(d => d.code === cf.driver) || {}).driver) || cf.driver;
+    el('cfBig').textContent = cf.time_left_on_table_s.toFixed(2) + 's';
+    el('cfCapLeft').textContent = `modeled race time ${cfName} left on the table by stopping on L${cf.actual_pit_lap} instead of L${cf.optimal_pit_lap}`;
+    const trace = traces[cf.driver];
+    const winner = codes.map(c => traces[c]).find(t => t.gap_s[t.gap_s.length - 1] === 0);
+    const gap = trace ? trace.gap_s[trace.gap_s.length - 1] : null;
+    const hasGap = gap != null && gap > 0 && winner;
+    show('cfGapBox', hasGap); show('cfDiv', hasGap);
+    if (hasGap){
+      el('cfGap').textContent = gap.toFixed(2) + 's';
+      el('cfCapGap').textContent = `actual finishing gap to ${surname(winner.driver)}.`
+        + (cf.time_left_on_table_s > gap ? ' Under the model\'s assumptions, the win was live at the first stop.' : '');
+    }
+    chart(el('cfChart'), {type:'line', data:{
+      labels: cf.curve.map(p => p.pit_lap),
+      datasets:[{data: cf.curve.map(p => p.delta_vs_actual_s), borderColor:C.purple, backgroundColor:C.purple,
+        borderWidth:2, pointRadius: cf.curve.map(p => p.pit_lap === cf.actual_pit_lap || p.pit_lap === cf.optimal_pit_lap ? 5 : 0),
+        pointBackgroundColor: cf.curve.map(p => p.pit_lap === cf.actual_pit_lap ? C.red : C.green), tension:.3}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:`FIRST PIT LAP (${cf.driver})`}}, y:{title:{display:true, text:'DELTA VS ACTUAL (S)'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` pit L${c.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toFixed(2)}s vs actual`}}}}
+    });
+  }
+
+  // ---- undercut table
+  show('secUndercut', R.undercut_events.length > 0 || !!B.rival_watcher);
+  const uc = [...R.undercut_events].sort((a, b) => Math.abs(b.swing_s) - Math.abs(a.swing_s)).slice(0, 8);
+  el('ucTable').innerHTML =
+   `<tr><th>attacker</th><th>defender</th><th class="num">pit laps</th><th class="num">gap before</th><th class="num">gap after</th><th class="num">swing</th></tr>` +
+   (uc.length ? uc.map(e => `<tr><td>${esc(surname(e.attacker))}</td><td>${esc(surname(e.defender))}</td><td class="num">L${e.attacker_pit_lap}/L${e.defender_pit_lap}</td><td class="num">${e.gap_before_s.toFixed(2)}</td><td class="num">${e.gap_after_s.toFixed(2)}</td><td class="num ${e.swing_s > 0 ? 'pos' : 'neg'}">${e.swing_s > 0 ? '+' : ''}${e.swing_s.toFixed(2)}s</td></tr>`).join('')
+    : '<tr><td colspan="6">no pit battles resolved in the data</td></tr>');
+
+  // ---- anomalies table
+  const anoms = R.deg_anomalies || [];
+  show('secAnom', anoms.length > 0);
+  if (anoms.length){
+    el('anomTable').innerHTML =
+     `<tr><th>driver</th><th class="num">stint</th><th class="num">laps</th><th class="num">slope s/lap</th><th class="num">field</th><th class="num">z</th><th></th></tr>` +
+     anoms.slice(0, 6).map(a => `<tr><td>${esc(surname(a.driver))}</td><td class="num">${a.stint}</td><td class="num">L${a.start_lap}-${a.end_lap}</td><td class="num ${a.direction === 'high_deg' ? 'neg' : 'best'}">${a.deg_slope_s_per_lap.toFixed(3)}</td><td class="num">${a.field_median_slope.toFixed(3)}</td><td class="num">${a.robust_z}</td><td><span class="pill ${a.direction === 'high_deg' ? 'warn' : 'ok'}">${a.direction === 'high_deg' ? 'HIGH DEG' : 'LOW DEG'}</span></td></tr>`).join('');
+    el('degTrigger').textContent = `trigger: ${anoms[0].code} stint ${anoms[0].stint}, z=${anoms[0].robust_z}`;
+  }
+
+  // ---- driver scatter
+  const dmAll = (R.driver_metrics || []).filter(d => d.n_stints_fitted > 0).slice(0, 14);
+  show('secDrivers', dmAll.length > 0);
+  if (dmAll.length){
+    chart(el('drvChart'), {type:'scatter', data:{datasets:[{
+      data: dmAll.map(d => ({x: d.median_clean_lap_s, y: d.consistency_iqr_s, code: d.code})),
+      backgroundColor: dmAll.map((d, i) => C.teams[d.code] || '#6b7484'), pointRadius:5}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:'MEDIAN CLEAN LAP (S)'}}, y:{title:{display:true, text:'CONSISTENCY IQR (S)  lower = steadier'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw.code}: ${c.parsed.x.toFixed(3)}s / iqr ${c.parsed.y.toFixed(2)}s`}}}}
+    });
+    el('coachLabel').textContent = cf ? `Driver Coach: ${cf.driver}` : 'Driver Coach';
+  }
+
+  // ---- track scatter
+  const tp = (R.track_profiles || []).filter(t => t.pit_loss_s);
+  show('secTracks', tp.length > 0);
+  if (tp.length){
+    const focus = R.race.circuit || (R.race.name === 'Spanish Grand Prix' ? 'Circuit de Barcelona-Catalunya' : null);
+    const isFocus = t => focus && (t.circuit === focus || t.circuit.includes(focus) || focus.includes(t.circuit));
+    chart(el('trkChart'), {type:'scatter', data:{datasets:[{
+      data: tp.map(t => ({x: t.median_deg_slope, y: t.neutralisation_rate, c: t.circuit})),
+      backgroundColor: tp.map(t => isFocus(t) ? C.purple : '#4a5262'),
+      pointRadius: tp.map(t => isFocus(t) ? 7 : 4.5)}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:'MEDIAN DEG SLOPE (S/LAP)'}}, y:{title:{display:true, text:'NEUTRALISATION RATE'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw.c}`}}}}
+    });
+    el('trackFocus').textContent = `payload: track_profiles, focus=${(focus || R.race.name).replace('Circuit de ', '')}`;
+  }
+
+  // ---- compliance
+  const audits = R.compliance_audits || [];
+  show('secCompliance', audits.length > 0);
+  if (audits.length){
+    const rows = [];
+    audits.forEach((a, i) => {
+      a.verdicts.forEach(v => rows.push({plan: i === 0 ? 'plan A (model optimum)' : 'plan B (deliberate fail)', ...v}));
+    });
+    el('compTable').innerHTML =
+     `<tr><th>recommendation</th><th>rule</th><th></th><th>detail</th></tr>` +
+     rows.map(r => `<tr><td>${r.plan}</td><td>${r.rule_id}</td><td><span class="pill ${r.passed ? 'ok' : 'fail'}">${r.passed ? 'PASS' : 'BLOCKED'}</span></td><td style="color:var(--dim)">${esc(r.detail)}</td></tr>`).join('');
+  }
+
+  // ---- briefs
+  Object.entries(BSET).forEach(([id, key]) => setBrief(id, B, key));
+
+  // ---- prediction audit
+  show('secBacktest', BACKTESTS.length > 0);
+  if (BACKTESTS.length){
+    const stats = el('btStats');
+    const fmt = v => v === null || v === undefined ? '&ndash;' : v;
+    stats.innerHTML = BACKTESTS.map(b => {
+      const d = b.deg_summary;
+      return `<div class="stat"><div class="v">${fmt(d.mae_s)}s</div><div class="l">deg MAE &middot; freeze L${b.freeze_lap} (${d.n_stints} stints)</div></div>`;
+    }).join('') + (function(){
+      const calls = BACKTESTS.flatMap(b => b.undercut_calls);
+      if (!calls.length) return '';
+      const hit = calls.filter(c => c.sign_correct).length;
+      const mae = (calls.reduce((a, c) => a + c.abs_error_s, 0) / calls.length).toFixed(2);
+      return `<div class="stat"><div class="v">${hit}/${calls.length}</div><div class="l">undercut sign calls correct</div></div>
+              <div class="stat"><div class="v">${mae}s</div><div class="l">undercut swing abs error (full cycle)</div></div>`;
+    })();
+
+    const calls = BACKTESTS.flatMap(b => b.undercut_calls.map(c => ({...c, freeze: b.freeze_lap})));
+    el('btUcTable').innerHTML = '<tr><th>open call at freeze</th><th>predicted swing</th><th>realized</th><th>error</th></tr>' +
+      (calls.length ? calls.map(c =>
+        `<tr><td>${esc(surname(c.attacker))} vs ${esc(surname(c.defender))} @ L${c.freeze}</td>
+         <td>${c.predicted_swing_s}s</td><td>${c.realized_swing_s}s</td><td>${c.abs_error_s}s</td></tr>`).join('')
+       : '<tr><td colspan="4">no open pit battles at these freeze points</td></tr>');
+
+    el('btDegTable').innerHTML = '<tr><th>freeze</th><th>stints scored</th><th>MAE</th><th>bias</th><th>mature fits (&ge;10 clean laps)</th></tr>' +
+      BACKTESTS.map(b => {
+        const d = b.deg_summary;
+        return `<tr><td>L${b.freeze_lap}</td><td>${d.n_stints}</td><td>${fmt(d.mae_s)}s</td><td>${fmt(d.bias_s)}s</td><td>${fmt(d.mature_fits_mae_s)}s (n=${d.mature_fits_n})</td></tr>`;
+      }).join('');
+  }
+}
+
+render(BAKED_R, BAKED_B, BAKED_BT);
+
+// ---- selectors, drill-downs, predictor: live only when served by scripts/serve_dashboard.py
+(function initSelectors(){
+  if (!location.protocol.startsWith('http')) return;
+  let catalog = null, poller = null, VIEW = 'race', SEQ = 0, RACE_LABEL = '', DRV_SEASON = null;
+  const stale = seq => seq !== SEQ;  // a newer load superseded this one
+  const raceLabel = () => el('selRace').selectedOptions[0]?.textContent ?? '';
+  function showEmpty(year, title, msg){
+    hideAll(); show('secEmpty', true); show('statstrip', false);
+    setHeader(year, title, 'no cached outputs yet');
+    el('emptyText').innerHTML = msg;
+  }
+  window.addEventListener('scroll', () =>
+    el('selbar').classList.toggle('stuck', el('selbar').getBoundingClientRect().top <= 0));
+  const status = s => { el('selStatus').textContent = s; };
+  const busy = on => { el('btnLoad').disabled = on; el('btnRegen').disabled = on; };
+  const api = async path => { const r = await fetch(path); if (!r.ok) throw new Error((await r.text()).slice(0, 140)); return r.json(); };
+  const year = () => parseInt(el('selSeason').value, 10);
+  const hideAll = () => { RACE_SECTIONS.concat(DRILL_SECTIONS).forEach(id => show(id, false)); };
+
+  fetch('/api/seasons').then(r => r.json()).then(cat => {
+    catalog = cat.seasons;
+    const sel = el('selSeason');
+    sel.innerHTML = catalog.map(s => `<option value="${s.year}">${s.year} (${s.source})</option>`).join('');
+    sel.value = String(cat.default_year ?? catalog[catalog.length - 1].year);
+    fillRaces();
+    el('selbar').style.display = 'flex';
+    el('predBadge').style.display = 'flex';
+  }).catch(() => {});
+
+  function season(){ return catalog.find(s => String(s.year) === el('selSeason').value); }
+  function fillRaces(auto){
+    el('selRace').innerHTML = season().races.map(r => `<option value="${r.key}">${esc(r.name)}</option>`).join('');
+    const def = season().races.find(r => r.key === '2024_spanish');
+    if (def) el('selRace').value = def.key;
+    RACE_LABEL = raceLabel();
+    fillSessions();
+    if (auto && VIEW === 'race') loadRace(el('selRace').value, false, true);
+  }
+  async function fillSessions(){
+    const sel = el('selSession');
+    sel.style.display = 'none';
+    sel.innerHTML = '<option value="race">Race</option>';
+    if (VIEW !== 'race') return;
+    try {
+      const d = await api('/api/sessions?key=' + encodeURIComponent(el('selRace').value));
+      if (d.sessions && d.sessions.length){
+        sel.innerHTML = d.sessions.map(s =>
+          `<option value="${s.session_key}" ${s.name === 'Race' ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+        sel.dataset.race = d.sessions.find(s => s.name === 'Race')?.session_key ?? 'race';
+        sel.style.display = '';
+      } else if (d.qualifying && d.qualifying.length){
+        sel.innerHTML = '<option value="race">Race</option><option value="ergast_quali">Qualifying</option>';
+        sel.dataset.race = 'race';
+        sel.dataset.quali = JSON.stringify(d.qualifying);
+        sel.style.display = '';
+      }
+    } catch(e){}
+  }
+
+  // ---------- view switching
+  function setView(v){
+    VIEW = v;
+    ['viewRace','viewDriver','viewSeason'].forEach(id => el(id).classList.remove('on'));
+    el({race:'viewRace', driver:'viewDriver', season:'viewSeason'}[v]).classList.add('on');
+    el('eyebrow').innerHTML = `F1 Agentic Race Analysis &middot; ${{race:'grand prix view', driver:'driver view', season:'season view'}[v]} &middot; deterministic layer + Bedrock agent briefs`;
+    el('selRace').style.display = v === 'race' ? '' : 'none';
+    el('selSession').style.display = 'none';
+    el('selDriver').style.display = v === 'driver' ? '' : 'none';
+    el('btnRegen').style.display = v === 'race' ? '' : 'none';
+    if (v === 'race'){
+      show('statstrip', true);
+      if (LAST) render(LAST.R, LAST.B, LAST.BT);
+      fillSessions();
+    } else {
+      hideAll(); show('statstrip', false);
+      if (v === 'driver') loadDriverView();
+      if (v === 'season') loadSeasonView();
+    }
+  }
+  el('viewRace').addEventListener('click', () => setView('race'));
+  el('viewDriver').addEventListener('click', () => setView('driver'));
+  el('viewSeason').addEventListener('click', () => setView('season'));
+  el('selSeason').addEventListener('change', () => {
+    fillRaces(true);
+    if (VIEW === 'driver') loadDriverView();
+    if (VIEW === 'season') loadSeasonView();
+  });
+  el('selRace').addEventListener('change', () => {
+    RACE_LABEL = raceLabel();
+    fillSessions();
+    loadRace(el('selRace').value, false, true);  // cache-only; never generates by itself
+  });
+  el('selSession').addEventListener('change', () => el('btnLoad').click());
+  el('selDriver').addEventListener('change', () => renderDriver(el('selDriver').value));
+  el('btnLoad').addEventListener('click', () => {
+    if (VIEW === 'race'){
+      const sess = el('selSession');
+      const v = sess.style.display === 'none' ? 'race' : sess.value;
+      if (v === 'ergast_quali') return renderErgastQuali(JSON.parse(sess.dataset.quali));
+      if (v !== 'race' && v !== sess.dataset.race) return loadSession(parseInt(v, 10));
+      loadRace(el('selRace').value, false);
+    } else if (VIEW === 'driver') renderDriver(el('selDriver').value);
+    else loadSeasonView();
+  });
+  el('btnRegen').addEventListener('click', () => loadRace(el('selRace').value, true));
+
+  // ---------- drill-down agent analysis (generated on first view, cached after)
+  async function loadInsightBrief(kind, params, briefId, seq){
+    const p = el(briefId);
+    p.textContent = 'Agent analysing (first view invokes Bedrock; cached after)...';
+    p.style.color = 'var(--faint)';
+    try {
+      const d = await api('/api/insight_brief?kind=' + kind + '&' + new URLSearchParams(params));
+      if (stale(seq)) return;
+      if (d.brief){ p.textContent = d.brief; p.style.color = ''; }
+      else { p.textContent = 'agent unavailable: ' + (d.error ?? 'unknown'); }
+    } catch(e){ if (!stale(seq)) p.textContent = 'agent failed: ' + e.message; }
+  }
+
+  // ---------- race + session loading
+  async function loadRace(key, force, auto){
+    if (poller){ clearInterval(poller); poller = null; }
+    const seq = ++SEQ;
+    busy(true);
+    if (!force){
+      status('checking cache...');
+      try {
+        const bundle = await api('/api/bundle?key=' + encodeURIComponent(key));
+        if (stale(seq) || VIEW !== 'race'){ busy(false); return; }
+        render(bundle.results, bundle.briefs, bundle.backtests);
+        el('btnRegen').textContent = 'regenerate';
+        status(`loaded from ${bundle.from}${bundle.briefs && Object.keys(bundle.briefs).length ? '' : ' (no agent briefs cached)'}`);
+        busy(false);
+        return;
+      } catch(e){}
+      if (auto){
+        // selection changes only read the cache; generation stays an explicit click
+        if (stale(seq) || VIEW !== 'race'){ busy(false); return; }
+        showEmpty(el('selSeason').value, RACE_LABEL,
+          `No cached outputs for <b>${esc(RACE_LABEL)}</b> locally or in S3 yet.<br>` +
+          'Press <b>generate</b> to run the deterministic pipeline, the frozen-clock backtests, and the agent briefs (about a minute).');
+        el('btnRegen').textContent = 'generate';
+        status('not generated yet');
+        busy(false);
+        return;
+      }
+    }
+    status(force ? 'regenerating...' : 'not cached; generating fresh...');
+    const resp = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, force})});
+    if (!resp.ok){ status('generate failed: ' + (await resp.text()).slice(0, 120)); busy(false); return; }
+    poller = setInterval(async () => {
+      const j = await (await fetch('/api/job?key=' + encodeURIComponent(key))).json();
+      if (j.state === 'running'){ status(j.step || 'working...'); return; }
+      clearInterval(poller); poller = null;
+      if (j.state === 'error'){ status('failed: ' + j.error); busy(false); return; }
+      const bundle = await api('/api/bundle?key=' + encodeURIComponent(key));
+      if (!stale(seq) && VIEW === 'race') render(bundle.results, bundle.briefs, bundle.backtests);
+      el('btnRegen').textContent = 'regenerate';
+      status('generated' + (j.note ? ' (' + j.note + ')' : ''));
+      busy(false);
+    }, 1500);
+  }
+
+  async function loadSession(sessionKey){
+    const seq = ++SEQ;
+    busy(true); status('loading session (first time pulls laps)...');
+    try {
+      const d = await api('/api/session_pace?session_key=' + sessionKey);
+      if (stale(seq)) return;
+      hideAll(); show('secSessionView', true); show('statstrip', false);
+      const fastest = d.rows[0];
+      setHeader(d.year, `${RACE_LABEL} - ${d.session_name}`,
+        [esc(d.location), 'session pace',
+         fastest ? `fastest ${esc(fastest.code)} ${esc(fastest.best_s)}s` : null]
+          .filter(Boolean).join(' &middot; '));
+      el('sessTitle').textContent = `${d.session_name} pace - ${d.location}`;
+      el('sessTable').innerHTML =
+        '<tr><th></th><th>driver</th><th class="num">best</th><th class="num">gap</th><th class="num">clean median</th><th class="num">laps</th><th class="num">long-run s/lap</th></tr>' +
+        d.rows.map((r, i) => `<tr><td class="num">${i + 1}</td><td>${esc(r.code)}</td><td class="num">${r.best_s.toFixed(3)}</td><td class="num">${r.gap_to_best_s ? '+' + r.gap_to_best_s.toFixed(3) : '-'}</td><td class="num">${r.median_clean_s ?? '-'}</td><td class="num">${r.n_laps}</td><td class="num">${r.long_run_slope ?? '-'}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      const top = d.rows.slice(0, 12);
+      chart(el('sessChart'), {type:'bar', data:{labels: top.map(r => r.code),
+        datasets:[{data: top.map(r => r.gap_to_best_s), backgroundColor: top.map((r, i) => colorFor(r.code, i))}]},
+        options:{maintainAspectRatio:false, indexAxis:'y',
+          scales:{x:{title:{display:true, text:'GAP TO FASTEST LAP (S)'}}},
+          plugins:{legend:{display:false}}}});
+      status(`${d.session_name} loaded`);
+      loadInsightBrief('session', {session_key: sessionKey}, 'sessBrief', seq);
+    } catch(e){ status('session failed: ' + e.message); }
+    busy(false);
+  }
+
+  function renderErgastQuali(rows){
+    hideAll(); show('secSessionView', true); show('statstrip', false);
+    setHeader(el('selSeason').value, `${RACE_LABEL} - Qualifying`,
+      'classification &middot; Q1 / Q2 / Q3');
+    el('sessBrief').textContent = 'Timed classification only; the deterministic layer fits nothing here.';
+    el('sessBrief').style.color = 'var(--faint)';
+    el('sessTitle').textContent = 'Qualifying classification';
+    el('sessTable').innerHTML =
+      '<tr><th></th><th>driver</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">Q3</th></tr>' +
+      rows.map(r => `<tr><td class="num">${r.position}</td><td>${esc(surname(r.driver))}</td><td class="num">${r.q1 ?? '-'}</td><td class="num">${r.q2 ?? '-'}</td><td class="num">${r.q3 ?? '-'}</td></tr>`).join('');
+    CHARTS.forEach(c => c.destroy()); CHARTS = [];
+    status('qualifying loaded');
+  }
+
+  // ---------- driver drill-down
+  async function loadDriverView(){
+    const seq = ++SEQ;
+    busy(true); status('loading season...');
+    try {
+      const s = await api('/api/season?year=' + year());
+      if (stale(seq) || VIEW !== 'driver') return;
+      DRV_SEASON = s;
+      el('selDriver').innerHTML = s.standings.slice(0, 24).map(d =>
+        `<option value="${d.code}">${esc(d.code)} - ${esc(surname(d.driver))}</option>`).join('');
+      await renderDriver(el('selDriver').value);
+    } catch(e){ status('season failed: ' + e.message); }
+    busy(false);
+  }
+  async function renderDriver(code){
+    if (!code) return;
+    const seq = ++SEQ;
+    busy(true); status('loading driver...');
+    try {
+      const d = await api(`/api/driver?year=${year()}&code=${encodeURIComponent(code)}`);
+      if (stale(seq) || VIEW !== 'driver') return;
+      hideAll(); show('secDriverView', true); show('statstrip', false);
+      const standing = DRV_SEASON?.standings.find(x => x.code === code);
+      const pos = standing ? DRV_SEASON.standings.indexOf(standing) + 1 : null;
+      setHeader(year(), d.driver ?? code,
+        [pos && `championship P${pos}`, standing && `${esc(standing.points)} pts`,
+         standing && `${esc(standing.wins)} wins`, `${d.races.length} rounds`]
+          .filter(Boolean).join(' &middot; '));
+      el('drvTitle').textContent = `${d.driver ?? code} - ${year()} season`;
+      const hasGrid = d.races.some(r => r.grid != null);
+      el('drvSeasonTable').innerHTML =
+        `<tr><th class="num">rd</th><th>grand prix</th>${hasGrid ? '<th class="num">grid</th><th class="num">finish</th><th class="num">+/-</th>' : ''}<th class="num">pts</th><th class="num">total</th></tr>` +
+        d.races.map(r => `<tr><td class="num">${r.round}</td><td>${esc(r.race)}</td>${hasGrid ? `<td class="num">${r.grid ?? '-'}</td><td class="num">${r.finish ?? '-'}</td><td class="num ${r.gained > 0 ? 'pos' : r.gained < 0 ? 'neg' : ''}">${r.gained == null ? '-' : (r.gained > 0 ? '+' : '') + r.gained}</td>` : ''}<td class="num">${r.points}</td><td class="num">${r.cum_points}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      chart(el('drvSeasonChart'), {type:'line', data:{labels: d.races.map(r => r.race),
+        datasets:[{label:'cumulative points', data: d.races.map(r => r.cum_points),
+          borderColor: colorFor(code, 0), backgroundColor: colorFor(code, 0), borderWidth: 2, pointRadius: 2, tension:.25}]},
+        options:{maintainAspectRatio:false, scales:{y:{title:{display:true, text:'CUMULATIVE POINTS'}}},
+          plugins:{legend:{display:false}}}});
+      status(`${code} loaded`);
+      loadInsightBrief('driver', {year: year(), code}, 'drvBrief', seq);
+    } catch(e){ status('driver failed: ' + e.message); }
+    busy(false);
+  }
+
+  // ---------- season drill-down
+  async function loadSeasonView(){
+    const seq = ++SEQ;
+    busy(true); status('loading season...');
+    try {
+      const s = await api('/api/season?year=' + year());
+      if (stale(seq) || VIEW !== 'season') return;
+      hideAll(); show('secSeasonView', true); show('statstrip', false);
+      const lead = s.standings[0];
+      setHeader(s.year, 'Season',
+        [`round ${s.rounds_done} of ${s.rounds_total}`,
+         lead && `${esc(lead.code)} leads on ${esc(lead.points)} pts`]
+          .filter(Boolean).join(' &middot; '));
+      el('seasonTitle').textContent = `${s.year} standings - round ${s.rounds_done} of ${s.rounds_total}`;
+      el('seasonTable').innerHTML =
+        '<tr><th></th><th>driver</th><th>team</th><th class="num">wins</th><th class="num">points</th></tr>' +
+        s.standings.slice(0, 14).map((d, i) =>
+          `<tr><td class="num">${i + 1}</td><td>${esc(d.code)} ${esc(surname(d.driver))}</td><td style="color:var(--dim)">${esc(d.team ?? '')}</td><td class="num">${d.wins}</td><td class="num">${d.points}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      const top = s.standings.slice(0, 6);
+      chart(el('seasonChart'), {type:'line', data:{labels: s.rounds,
+        datasets: top.map((d, i) => ({label: d.code, data: s.progression[d.code],
+          borderColor: colorFor(d.code, i), backgroundColor: colorFor(d.code, i),
+          borderWidth: 1.8, pointRadius: 0, tension:.25}))},
+        options:{maintainAspectRatio:false, scales:{y:{title:{display:true, text:'CUMULATIVE POINTS'}}},
+          plugins:{legend:{position:'top', labels:{boxWidth:10, boxHeight:10}}}}});
+      status('standings loaded');
+      loadInsightBrief('season', {year: year()}, 'seasonBrief', seq);
+    } catch(e){ status('season failed: ' + e.message); }
+    busy(false);
+  }
+
+  // ---------- championship predictor
+  let PRED = null;
+  el('predBadge').addEventListener('click', openPredictor);
+  el('predClose').addEventListener('click', () => { el('predModal').style.display = 'none'; });
+  el('predModal').addEventListener('click', e => { if (e.target === el('predModal')) el('predModal').style.display = 'none'; });
+  el('predDriver').addEventListener('change', () => renderScenario(el('predDriver').value));
+  el('predBriefBtn').addEventListener('click', fetchBrief);
+
+  async function openPredictor(){
+    el('predModal').style.display = 'block';
+    el('predStatus').textContent = 'computing projection...';
+    el('predBriefBtn').disabled = true;  // no driver to brief until the projection lands
+    try {
+      PRED = await api('/api/predictor?year=2026');
+      el('predBriefBtn').disabled = false;
+      el('predTitle').textContent = `2026 Championship Predictor - ${PRED.rounds_left} rounds to go`;
+      el('predTable').innerHTML =
+        '<tr><th></th><th>driver</th><th class="num">pts</th><th class="num">avg/rd</th><th class="num">projected</th><th class="num">P(title)</th><th></th></tr>' +
+        PRED.projection.map((p, i) =>
+          `<tr><td class="num">${i + 1}</td><td>${esc(p.code)} ${esc(surname(p.driver))}</td><td class="num">${p.points}</td><td class="num">${p.avg_points_per_round}</td><td class="num">${p.projected_points}</td><td class="num best">${(p.title_probability * 100).toFixed(1)}%</td><td><div class="probbar"><i style="width:${Math.round(p.title_probability * 100)}%"></i></div></td></tr>`).join('');
+      el('predDriver').innerHTML = PRED.projection.map(p => `<option value="${p.code}">${esc(p.code)}</option>`).join('');
+      el('predMethod').textContent = 'method: ' + PRED.method;
+      renderScenario(PRED.projection[0].code);
+      el('predStatus').textContent = '';
+    } catch(e){ el('predStatus').textContent = 'predictor failed: ' + e.message; }
+  }
+  async function renderScenario(code){
+    const p = PRED.projection.find(x => x.code === code);
+    if (!p) return;
+    const sc = p.scenario;
+    const cell = (v, l) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+    el('predScen').innerHTML =
+      cell(sc.gap_to_leader, 'points behind leader') +
+      cell(PRED.rounds_left, 'rounds left') +
+      cell(sc.max_remaining_points, 'max points remaining') +
+      cell(sc.mathematically_alive ? 'YES' : 'NO', 'mathematically alive') +
+      cell(sc.required_avg_vs_leader_form ?? '-', 'required avg vs leader form') +
+      cell(sc.wins_needed_rest_p2 ?? '-', 'wins needed (P2 elsewhere)');
+    // show a cached outlook instantly; never invoke Bedrock on a mere selection
+    el('predBrief').textContent = 'checking for a cached outlook on ' + code + '...';
+    el('predBrief').style.color = 'var(--faint)';
+    try {
+      const d = await api('/api/predictor_brief?year=2026&cached=1&driver=' + encodeURIComponent(code));
+      if (el('predDriver').value !== code) return;
+      if (d.brief){ el('predBrief').textContent = d.brief; el('predBrief').style.color = ''; }
+      else { el('predBrief').textContent = 'No cached outlook for ' + code + ' yet; press "strategist outlook" to generate one.'; }
+    } catch(e){ el('predBrief').textContent = 'Press "strategist outlook" to generate an outlook for ' + code + '.'; }
+  }
+  async function fetchBrief(){
+    const code = el('predDriver').value;
+    if (!code){ el('predStatus').textContent = 'projection still loading'; return; }
+    el('predStatus').textContent = 'strategist thinking...';
+    el('predBrief').textContent = 'Strategist analysing ' + code + ' (10-20s on first run)...';
+    el('predBrief').style.color = 'var(--faint)';
+    el('predBriefBtn').disabled = true;
+    try {
+      const d = await api('/api/predictor_brief?year=2026&driver=' + encodeURIComponent(code));
+      if (d.brief){ el('predBrief').textContent = d.brief; el('predBrief').style.color = ''; }
+      else { el('predBrief').textContent = 'strategist unavailable: ' + (d.error ?? 'unknown'); el('predBrief').style.color = 'var(--faint)'; }
+      el('predStatus').textContent = '';
+    } catch(e){ el('predStatus').textContent = 'brief failed: ' + e.message; }
+    el('predBriefBtn').disabled = false;
+  }
+})();
+</script>
+</body>
+</html>

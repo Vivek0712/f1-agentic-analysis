@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F1 Agentic Race Analysis - 2024 Spanish Grand Prix</title>
+<script src="chart.umd.min.js"></script>
+<script>
+// vendored copy first; fall back to the CDN only if it is missing
+if (!window.Chart) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>');
+</script>
+<style>
+:root{
+  --bg:#101318; --panel:#171B22; --panel2:#1D222B; --line:#2A303B;
+  --txt:#E8ECF2; --dim:#8B95A5; --faint:#5A6373;
+  --purple:#B57BFF; --green:#3DDC84; --yellow:#F5C542; --red:#F0524D;
+  --mono:ui-monospace,'SF Mono','Cascadia Mono',Consolas,Menlo,monospace;
+  --sans:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+h1{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:6px 0 2px}
+h1 .yr{color:var(--purple)}
+.sub{color:var(--dim);font-size:13px}
+.selbar{display:none;gap:8px;margin-top:16px;align-items:center;font-family:var(--mono);flex-wrap:wrap;position:sticky;top:0;z-index:40;background:var(--bg);padding:10px 0;border-bottom:1px solid transparent}
+.selbar.stuck{border-bottom-color:var(--line)}
+.selbar select,.selbar button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:6px 10px;font-family:var(--mono);font-size:12px;border-radius:2px}
+.selbar button{cursor:pointer}
+.selbar button:hover{border-color:var(--purple)}
+.selbar button:disabled{color:var(--faint);cursor:default;border-color:var(--line)}
+.selbar .st{font-size:11px;color:var(--dim)}
+.statstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:18px}
+.stat{background:var(--panel);padding:12px 14px}
+.stat .v{font-family:var(--mono);font-size:22px;font-weight:600}
+.stat .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+section{margin-top:34px}
+.seclabel{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.seclabel h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.seclabel .tier{font-family:var(--mono);font-size:10px;padding:2px 8px;border:1px solid var(--line);border-radius:2px;color:var(--dim);letter-spacing:.08em}
+.tier.slow{color:var(--green);border-color:#234534}
+.tier.post{color:var(--purple);border-color:#3d2f5c}
+.tier.cross{color:var(--yellow);border-color:#57491e}
+.seclabel .note{font-size:12px;color:var(--faint)}
+.panel{background:var(--panel);border:1px solid var(--line);padding:18px}
+.chartbox{position:relative;height:360px}
+.chartbox.short{height:300px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+th{font-family:var(--sans);text-align:left;font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:7px 10px;border-bottom:1px solid #20252e}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right}th.num{text-align:right}
+.pos{color:var(--green)}.neg{color:var(--red)}.best{color:var(--purple)}
+.pill{display:inline-block;font-size:10px;font-family:var(--mono);padding:1px 7px;border-radius:2px;letter-spacing:.05em}
+.pill.ok{background:#12301f;color:var(--green)}
+.pill.fail{background:#3a1512;color:var(--red)}
+.pill.warn{background:#3a3110;color:var(--yellow)}
+.brief{background:var(--panel2);border-left:3px solid var(--purple);padding:14px 16px;margin-top:12px}
+.brief.g{border-left-color:var(--green)}
+.brief.y{border-left-color:var(--yellow)}
+.brief.r{border-left-color:var(--red)}
+.brief h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;justify-content:space-between}
+.brief h3 .m{color:var(--faint);font-family:var(--mono);font-size:10px;text-transform:none;letter-spacing:0}
+.brief p{font-size:13px;color:#C9D1DE;white-space:pre-line}
+.callout{display:flex;gap:26px;align-items:stretch;background:linear-gradient(90deg,#1c1530 0%,var(--panel) 55%);border:1px solid #3d2f5c;padding:20px}
+.callout .big{font-family:var(--mono);font-size:44px;font-weight:700;color:var(--purple);line-height:1}
+.callout .cap{font-size:12px;color:var(--dim);margin-top:6px;max-width:230px}
+.callout .div{width:1px;background:var(--line)}
+footer{margin-top:56px;border-top:1px solid var(--line);padding-top:14px;color:var(--faint);font-size:11.5px;font-family:var(--mono)}
+a{color:var(--purple);text-decoration:none}
+.legendnote{font-size:11px;color:var(--faint);margin-top:8px;font-family:var(--mono)}
+header{position:relative}
+.viewbtn{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 10px;font-family:var(--mono);font-size:12px;border-radius:2px;cursor:pointer}
+.viewbtn.on{color:var(--purple);border-color:#3d2f5c;background:var(--panel2)}
+.predbadge{position:absolute;top:0;right:0;display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--txt);background:linear-gradient(90deg,#1c1530,#171B22);border:1px solid #3d2f5c;border-radius:3px;padding:8px 12px;cursor:pointer}
+.predbadge:hover{border-color:var(--purple)}
+.predbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
+.predbadge .km{color:var(--purple)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.modal{display:none;position:fixed;inset:0;background:rgba(8,10,14,.82);z-index:50;overflow:auto}
+.modalbox{max-width:860px;margin:48px auto;background:var(--panel);border:1px solid #3d2f5c;padding:24px}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.mhead h2{font-size:17px;letter-spacing:.06em;text-transform:uppercase}
+.mhead button{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer}
+.probbar{background:#2a1f45;height:10px;border-radius:2px;overflow:hidden;min-width:90px}
+.probbar i{display:block;height:100%;background:var(--purple)}
+.scen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:14px}
+.mnote{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:14px;line-height:1.6}
+@media(max-width:1120px){.predbadge{position:static;display:inline-flex;margin-top:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow" id="eyebrow">F1 Agentic Race Analysis &middot; deterministic layer + Bedrock agent briefs</div>
+  <h1 id="hdrTitle"><span class="yr">2024</span> Spanish Grand Prix</h1>
+  <div class="sub" id="hdrSub">Circuit de Barcelona-Catalunya &middot; 66 laps &middot; Ergast-schema lap data, fits reproducible from <span style="font-family:var(--mono)">results.json</span></div>
+  <div class="predbadge" id="predBadge"><span class="dot"></span>2026 CHAMPIONSHIP PREDICTOR<span class="km">know more -&gt;</span></div>
+  <div class="selbar" id="selbar">
+    <button class="viewbtn on" id="viewRace">grand prix</button>
+    <button class="viewbtn" id="viewDriver">driver</button>
+    <button class="viewbtn" id="viewSeason">season</button>
+    <select id="selSeason"></select>
+    <select id="selRace"></select>
+    <select id="selSession" style="display:none"></select>
+    <select id="selDriver" style="display:none"></select>
+    <button id="btnLoad" title="reload the current selection">reload</button>
+    <button id="btnRegen" title="run the deterministic pipeline + agent briefs for this race">regenerate</button>
+    <span class="st" id="selStatus"></span>
+  </div>
+  <div class="statstrip" id="statstrip"></div>
+</header>
+
+<section id="secEmpty" style="display:none">
+  <div class="panel" style="font-family:var(--mono);color:var(--dim);font-size:13px;line-height:1.7" id="emptyText"></div>
+</section>
+
+<section id="secSessionView" style="display:none">
+  <div class="seclabel"><h2 id="sessTitle">Session pace</h2><span class="tier slow">deterministic</span><span class="note" id="sessNote">best lap, clean median, long-run slope; undercuts and counterfactuals exist only in races</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="sessTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="sessChart"></canvas></div></div>
+      <div class="brief"><h3>Stint Analyst <span class="m">payload: session pace + long-run fits</span></h3><p id="sessBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secDriverView" style="display:none">
+  <div class="seclabel"><h2 id="drvTitle">Driver season</h2><span class="tier post">drill-down</span><span class="note">one driver across every grand prix of the season</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="drvSeasonTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="drvSeasonChart"></canvas></div></div>
+      <div class="brief g"><h3>Driver Season Review <span class="m">payload: per-race rows + standings neighbours</span></h3><p id="drvBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secSeasonView" style="display:none">
+  <div class="seclabel"><h2 id="seasonTitle">Season standings</h2><span class="tier cross">drill-down</span><span class="note">points across drivers; race and sprint points combined</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="seasonTable"></table></div>
+    <div>
+      <div class="panel"><div class="chartbox short"><canvas id="seasonChart"></canvas></div></div>
+      <div class="brief y"><h3>Season Analyst <span class="m">payload: standings + last-three-rounds form</span></h3><p id="seasonBrief"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secTrace">
+  <div class="seclabel"><h2>Pit-wall trace</h2><span class="tier slow">slow loop</span><span class="note">gap to leader, top six finishers; markers are pit stops</span></div>
+  <div class="panel"><div class="chartbox"><canvas id="gapChart"></canvas></div>
+  <div class="legendnote">vertical drops across pit cycles are the undercut swings measured in the ledger below</div></div>
+</section>
+
+<section id="secCF">
+  <div class="seclabel"><h2>The stop that priced the win</h2><span class="tier post">post session</span><span class="note">counterfactual pit-lap model: fixed pit loss, linear per-stint deg, no traffic interaction</span></div>
+  <div class="callout">
+    <div><div class="big" id="cfBig"></div><div class="cap" id="cfCapLeft">modeled race time Norris left on the table by stopping on L23 instead of L17</div></div>
+    <div class="div" id="cfDiv"></div>
+    <div id="cfGapBox"><div class="big" style="color:var(--txt)" id="cfGap"></div><div class="cap" id="cfCapGap">actual finishing gap to Verstappen. Under the model's assumptions, the win was live at the first stop.</div></div>
+    <div class="div"></div>
+    <div style="flex:1;min-width:280px"><div class="chartbox short"><canvas id="cfChart"></canvas></div></div>
+  </div>
+</section>
+
+<section id="secUndercut">
+  <div class="seclabel"><h2>Undercut ledger</h2><span class="tier slow">slow loop</span><span class="note">measured gap swings across pit cycles, rival pairs within 4s at the in-lap</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="ucTable"></table></div>
+    <div>
+      <div class="brief g"><h3>Rival Watcher <span class="m">payload: undercut_events + pit_loss</span></h3><p id="briefRival"></p></div>
+      <div class="brief"><h3>Stint Analyst <span class="m">payload: stint_fits + fuel_slope</span></h3><p id="briefStint"></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="secAnom">
+  <div class="seclabel"><h2>Degradation anomalies</h2><span class="tier slow">slow loop</span><span class="note">robust z vs field slope distribution; trigger threshold |z| &ge; 1.5</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="anomTable"></table></div>
+    <div class="brief y"><h3>Deg Explainer <span class="m" id="degTrigger">trigger: BOT stint 2, z=4.79</span></h3><p id="briefDeg"></p></div>
+  </div>
+</section>
+
+<section id="secDrivers">
+  <div class="seclabel"><h2>Driver metrics</h2><span class="tier post">post session</span><span class="note">fuel-corrected pace vs in-stint consistency, this race</span></div>
+  <div class="grid2">
+    <div class="panel"><div class="chartbox short"><canvas id="drvChart"></canvas></div></div>
+    <div class="brief"><h3><span id="coachLabel">Driver Coach: NOR</span> <span class="m">payload: driver_metrics + counterfactuals</span></h3><p id="briefCoach"></p></div>
+  </div>
+</section>
+
+<section id="secTracks">
+  <div class="seclabel"><h2>Track archetypes</h2><span class="tier cross">cross season</span><span class="note">25 circuits, 2022-2024: tyre stress vs race neutralisation</span></div>
+  <div class="grid2">
+    <div class="panel"><div class="chartbox short"><canvas id="trkChart"></canvas></div></div>
+    <div class="brief y"><h3>Track Historian <span class="m" id="trackFocus">payload: track_profiles, focus=Barcelona</span></h3><p id="briefTrack"></p></div>
+  </div>
+</section>
+
+<section id="secCompliance">
+  <div class="seclabel"><h2>Compliance gate</h2><span class="tier slow">slow loop</span><span class="note">deterministic rules engine; the agent explains, it never adjudicates</span></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="compTable"></table></div>
+    <div class="brief r"><h3>Compliance Guardian <span class="m">payload: audit record #2</span></h3><p id="briefComp"></p></div>
+  </div>
+</section>
+
+<section id="secBacktest">
+  <div class="seclabel"><h2>Prediction audit</h2><span class="tier slow">slow loop</span><span class="note">frozen-clock backtest: fits from laps 1..N, scored on laps N+1 onward; no lookahead</span></div>
+  <div class="statstrip" id="btStats"></div>
+  <div class="grid2">
+    <div class="panel" style="padding:0"><table id="btUcTable"></table></div>
+    <div class="panel" style="padding:0"><table id="btDegTable"></table></div>
+  </div>
+</section>
+
+<section id="secReporter">
+  <div class="seclabel"><h2>Race Reporter</h2><span class="tier post">post session</span><span class="note">full-payload strategy narrative</span></div>
+  <div class="brief"><h3>Strategy story of the race <span class="m">payload: full deterministic output set</span></h3><p id="briefReport"></p></div>
+</section>
+
+<div class="modal" id="predModal">
+  <div class="modalbox">
+    <div class="mhead"><h2 id="predTitle">2026 Championship Predictor</h2><button id="predClose">close</button></div>
+    <div class="panel" style="padding:0"><table id="predTable"></table></div>
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:12px">
+      <span style="color:var(--dim)">path to the title:</span>
+      <select id="predDriver"></select>
+      <button class="viewbtn" id="predBriefBtn">strategist outlook</button>
+      <span class="st" id="predStatus"></span>
+    </div>
+    <div class="statstrip scen" id="predScen"></div>
+    <div class="brief y" style="margin-top:16px"><h3>Championship Strategist <span class="m">payload: projection + title scenario, numbers computed deterministically</span></h3><p id="predBrief">Pick a driver and run the strategist for a grounded outlook.</p></div>
+    <div class="mnote" id="predMethod"></div>
+  </div>
+</div>
+
+<footer>
+  f1-agentic-analysis &middot; deterministic layer: pandas/scipy &middot; agents: Strands Agents on Bedrock AgentCore Runtime with Memory (slow loop) + Bedrock Batch (post/cross), payload-in / brief-out contract &middot; data: Ergast-schema historical dumps + OpenF1 &middot; every number on this page is in results.json
+</footer>
+</div>
+
+<script>
+const BAKED_R = {"race": {"raceId": 1130, "name": "Spanish Grand Prix", "year": 2024, "laps": 66, "drivers": 20}, "fuel_slope_s_per_lap": -0.0466, "pit_loss": {"pit_loss_s": 22.61, "pit_loss_iqr_s": 2.24, "n_stops_used": 42, "n_stops_total": 42}, "stint_fits": [{"code": "HAM", "stint": 1, "start_lap": 1, "end_lap": 16}, {"code": "HAM", "stint": 2, "start_lap": 17, "end_lap": 43}, {"code": "HAM", "stint": 3, "start_lap": 44, "end_lap": 66}, {"code": "ALO", "stint": 1, "start_lap": 1, "end_lap": 19}, {"code": "ALO", "stint": 2, "start_lap": 20, "end_lap": 45}, {"code": "ALO", "stint": 3, "start_lap": 46, "end_lap": 65}, {"code": "HUL", "stint": 1, "start_lap": 1, "end_lap": 12}, {"code": "HUL", "stint": 2, "start_lap": 13, "end_lap": 38}, {"code": "HUL", "stint": 3, "start_lap": 39, "end_lap": 66}, {"code": "PER", "stint": 1, "start_lap": 1, "end_lap": 13}, {"code": "PER", "stint": 2, "start_lap": 14, "end_lap": 31}, {"code": "PER", "stint": 3, "start_lap": 32, "end_lap": 49}, {"code": "PER", "stint": 4, "start_lap": 50, "end_lap": 66}, {"code": "RIC", "stint": 1, "start_lap": 1, "end_lap": 16}, {"code": "RIC", "stint": 2, "start_lap": 17, "end_lap": 42}, {"code": "RIC", "stint": 3, "start_lap": 43, "end_lap": 65}, {"code": "BOT", "stint": 1, "start_lap": 1, "end_lap": 11}, {"code": "BOT", "stint": 2, "start_lap": 12, "end_lap": 28}, {"code": "BOT", "stint": 3, "start_lap": 29, "end_lap": 65}, {"code": "MAG", "stint": 1, "start_lap": 1, "end_lap": 10}, {"code": "MAG", "stint": 2, "start_lap": 11, "end_lap": 29}, {"code": "MAG", "stint": 3, "start_lap": 30, "end_lap": 65}, {"code": "VER", "stint": 1, "start_lap": 1, "end_lap": 17}, {"code": "VER", "stint": 2, "start_lap": 18, "end_lap": 44}, {"code": "VER", "stint": 3, "start_lap": 45, "end_lap": 66}, {"code": "SAI", "stint": 1, "start_lap": 1, "end_lap": 15}, {"code": "SAI", "stint": 2, "start_lap": 16, "end_lap": 36}, {"code": "SAI", "stint": 3, "start_lap": 37, "end_lap": 66}, {"code": "OCO", "stint": 1, "start_lap": 1, "end_lap": 13}, {"code": "OCO", "stint": 2, "start_lap": 14, "end_lap": 37}, {"code": "OCO", "stint": 3, "start_lap": 38, "end_lap": 66}, {"code": "STR", "stint": 1, "start_lap": 1, "end_lap": 17}, {"code": "STR", "stint": 2, "start_lap": 18, "end_lap": 37}, {"code": "STR", "stint": 3, "start_lap": 38, "end_lap": 65}, {"code": "GAS", "stint": 1, "start_lap": 1, "end_lap": 14}, {"code": "GAS", "stint": 2, "start_lap": 15, "end_lap": 38}, {"code": "GAS", "stint": 3, "start_lap": 39, "end_lap": 66}, {"code": "LEC", "stint": 1, "start_lap": 1, "end_lap": 24}, {"code": "LEC", "stint": 2, "start_lap": 25, "end_lap": 47}, {"code": "LEC", "stint": 3, "start_lap": 48, "end_lap": 66}, {"code": "NOR", "stint": 1, "start_lap": 1, "end_lap": 23}, {"code": "NOR", "stint": 2, "start_lap": 24, "end_lap": 47}, {"code": "NOR", "stint": 3, "start_lap": 48, "end_lap": 66}, {"code": "RUS", "stint": 1, "start_lap": 1, "end_lap": 15}, {"code": "RUS", "stint": 2, "start_lap": 16, "end_lap": 36}, {"code": "RUS", "stint": 3, "start_lap": 37, "end_lap": 66}, {"code": "ALB", "stint": 1, "start_lap": 1, "end_lap": 18}, {"code": "ALB", "stint": 2, "start_lap": 19, "end_lap": 43}, {"code": "ALB", "stint": 3, "start_lap": 44, "end_lap": 65}, {"code": "TSU", "stint": 1, "start_lap": 1, "end_lap": 9}, {"code": "TSU", "stint": 2, "start_lap": 10, "end_lap": 27}, {"code": "TSU", "stint": 3, "start_lap": 28, "end_lap": 44}, {"code": "TSU", "stint": 4, "start_lap": 45, "end_lap": 65}, {"code": "ZHO", "stint": 1, "start_lap": 1, "end_lap": 9}, {"code": "ZHO", "stint": 2, "start_lap": 10, "end_lap": 41}, {"code": "ZHO", "stint": 3, "start_lap": 42, "end_lap": 65}, {"code": "PIA", "stint": 1, "start_lap": 1, "end_lap": 21}, {"code": "PIA", "stint": 2, "start_lap": 22, "end_lap": 46}, {"code": "PIA", "stint": 3, "start_lap": 47, "end_lap": 66}, {"code": "SAR", "stint": 1, "start_lap": 1, "end_lap": 14}, {"code": "SAR", "stint": 2, "start_lap": 15, "end_lap": 34}, {"code": "SAR", "stint": 3, "start_lap": 35, "end_lap": 64}], "undercut_events": [{"attacker": "Yuki Tsunoda", "defender": "Logan Sargeant", "attacker_pit_lap": 9, "defender_pit_lap": 14, "gap_before_s": -1.05, "gap_after_s": 7.1, "swing_s": 8.15, "worked": true}, {"attacker": "Guanyu Zhou", "defender": "Logan Sargeant", "attacker_pit_lap": 9, "defender_pit_lap": 14, "gap_before_s": 0.53, "gap_after_s": 14.41, "swing_s": 13.88, "worked": true}, {"attacker": "Kevin Magnussen", "defender": "Logan Sargeant", "attacker_pit_lap": 10, "defender_pit_lap": 14, "gap_before_s": 2.4, "gap_after_s": 10.28, "swing_s": 7.88, "worked": true}, {"attacker": "Valtteri Bottas", "defender": "Daniel Ricciardo", "attacker_pit_lap": 11, "defender_pit_lap": 16, "gap_before_s": 1.41, "gap_after_s": 12.34, "swing_s": 10.92, "worked": true}, {"attacker": "Nico H\u00fclkenberg", "defender": "Lance Stroll", "attacker_pit_lap": 12, "defender_pit_lap": 17, "gap_before_s": 0.04, "gap_after_s": 8.62, "swing_s": 8.57, "worked": true}, {"attacker": "Sergio P\u00e9rez", "defender": "Lance Stroll", "attacker_pit_lap": 13, "defender_pit_lap": 17, "gap_before_s": 1.57, "gap_after_s": 12.78, "swing_s": 11.21, "worked": true}, {"attacker": "Esteban Ocon", "defender": "Lance Stroll", "attacker_pit_lap": 13, "defender_pit_lap": 17, "gap_before_s": 3.75, "gap_after_s": 14.25, "swing_s": 10.5, "worked": true}, {"attacker": "George Russell", "defender": "Lewis Hamilton", "attacker_pit_lap": 15, "defender_pit_lap": 16, "gap_before_s": -0.96, "gap_after_s": 2.35, "swing_s": 3.31, "worked": true}, {"attacker": "Lewis Hamilton", "defender": "Oscar Piastri", "attacker_pit_lap": 16, "defender_pit_lap": 21, "gap_before_s": 3.19, "gap_after_s": 19.06, "swing_s": 15.87, "worked": true}, {"attacker": "Daniel Ricciardo", "defender": "Alexander Albon", "attacker_pit_lap": 16, "defender_pit_lap": 18, "gap_before_s": 0.75, "gap_after_s": 7.19, "swing_s": 6.44, "worked": true}, {"attacker": "Lance Stroll", "defender": "Fernando Alonso", "attacker_pit_lap": 17, "defender_pit_lap": 19, "gap_before_s": -1.49, "gap_after_s": 3.48, "swing_s": 4.97, "worked": true}, {"attacker": "Lando Norris", "defender": "Charles Leclerc", "attacker_pit_lap": 23, "defender_pit_lap": 24, "gap_before_s": 2.51, "gap_after_s": 9.65, "swing_s": 7.15, "worked": true}, {"attacker": "Valtteri Bottas", "defender": "Kevin Magnussen", "attacker_pit_lap": 28, "defender_pit_lap": 29, "gap_before_s": -1.05, "gap_after_s": 11.54, "swing_s": 12.59, "worked": true}, {"attacker": "Esteban Ocon", "defender": "Nico H\u00fclkenberg", "attacker_pit_lap": 37, "defender_pit_lap": 38, "gap_before_s": -0.63, "gap_after_s": 5.08, "swing_s": 5.71, "worked": true}, {"attacker": "Lance Stroll", "defender": "Daniel Ricciardo", "attacker_pit_lap": 37, "defender_pit_lap": 42, "gap_before_s": 2.66, "gap_after_s": 10.7, "swing_s": 8.04, "worked": true}, {"attacker": "Guanyu Zhou", "defender": "Fernando Alonso", "attacker_pit_lap": 41, "defender_pit_lap": 45, "gap_before_s": -2.64, "gap_after_s": 2.25, "swing_s": 4.89, "worked": true}, {"attacker": "Lewis Hamilton", "defender": "Charles Leclerc", "attacker_pit_lap": 43, "defender_pit_lap": 47, "gap_before_s": -0.82, "gap_after_s": 9.72, "swing_s": 10.54, "worked": true}, {"attacker": "Max Verstappen", "defender": "Lando Norris", "attacker_pit_lap": 44, "defender_pit_lap": 47, "gap_before_s": 0.76, "gap_after_s": 6.82, "swing_s": 6.05, "worked": true}], "counterfactuals": [{"driver": "NOR", "viable": true, "actual_pit_lap": 23, "optimal_pit_lap": 17, "time_left_on_table_s": 4.38, "curve": [{"pit_lap": 17, "shift": -6, "modeled_time_s": 3769.07, "delta_vs_actual_s": -4.38}, {"pit_lap": 18, "shift": -5, "modeled_time_s": 3769.58, "delta_vs_actual_s": -3.87}, {"pit_lap": 19, "shift": -4, "modeled_time_s": 3770.18, "delta_vs_actual_s": -3.27}, {"pit_lap": 20, "shift": -3, "modeled_time_s": 3770.86, "delta_vs_actual_s": -2.59}, {"pit_lap": 21, "shift": -2, "modeled_time_s": 3771.64, "delta_vs_actual_s": -1.81}, {"pit_lap": 22, "shift": -1, "modeled_time_s": 3772.5, "delta_vs_actual_s": -0.95}, {"pit_lap": 23, "shift": 0, "modeled_time_s": 3773.45, "delta_vs_actual_s": 0.0}, {"pit_lap": 24, "shift": 1, "modeled_time_s": 3774.49, "delta_vs_actual_s": 1.04}, {"pit_lap": 25, "shift": 2, "modeled_time_s": 3775.61, "delta_vs_actual_s": 2.16}, {"pit_lap": 26, "shift": 3, "modeled_time_s": 3776.83, "delta_vs_actual_s": 3.38}, {"pit_lap": 27, "shift": 4, "modeled_time_s": 3778.13, "delta_vs_actual_s": 4.68}, {"pit_lap": 28, "shift": 5, "modeled_time_s": 3779.52, "delta_vs_actual_s": 6.07}, {"pit_lap": 29, "shift": 6, "modeled_time_s": 3780.99, "delta_vs_actual_s": 7.54}], "assumptions": "fixed pit loss; no traffic/SC interaction; linear deg per stint"}, {"driver": "VER", "viable": true, "actual_pit_lap": 17, "optimal_pit_lap": 16, "time_left_on_table_s": 0.06, "curve": [{"pit_lap": 11, "shift": -6, "modeled_time_s": 3537.21, "delta_vs_actual_s": 2.0}, {"pit_lap": 12, "shift": -5, "modeled_time_s": 3536.49, "delta_vs_actual_s": 1.28}, {"pit_lap": 13, "shift": -4, "modeled_time_s": 3535.92, "delta_vs_actual_s": 0.71}, {"pit_lap": 14, "shift": -3, "modeled_time_s": 3535.51, "delta_vs_actual_s": 0.3}, {"pit_lap": 15, "shift": -2, "modeled_time_s": 3535.25, "delta_vs_actual_s": 0.04}, {"pit_lap": 16, "shift": -1, "modeled_time_s": 3535.15, "delta_vs_actual_s": -0.06}, {"pit_lap": 17, "shift": 0, "modeled_time_s": 3535.21, "delta_vs_actual_s": 0.0}, {"pit_lap": 18, "shift": 1, "modeled_time_s": 3535.41, "delta_vs_actual_s": 0.2}, {"pit_lap": 19, "shift": 2, "modeled_time_s": 3535.78, "delta_vs_actual_s": 0.57}, {"pit_lap": 20, "shift": 3, "modeled_time_s": 3536.29, "delta_vs_actual_s": 1.08}, {"pit_lap": 21, "shift": 4, "modeled_time_s": 3536.97, "delta_vs_actual_s": 1.76}, {"pit_lap": 22, "shift": 5, "modeled_time_s": 3537.8, "delta_vs_actual_s": 2.59}, {"pit_lap": 23, "shift": 6, "modeled_time_s": 3538.78, "delta_vs_actual_s": 3.57}], "assumptions": "fixed pit loss; no traffic/SC interaction; linear deg per stint"}], "deg_anomalies": [{"driver": "Valtteri Bottas", "code": "BOT", "team": "Sauber", "stint": 2, "start_lap": 12, "end_lap": 28, "n_laps": 17, "n_clean": 15, "base_pace_s": 80.3475, "deg_slope_s_per_lap": 0.2746, "slope_ci_low": 0.2037, "slope_ci_high": 0.3125, "median_lap_s": 81.612, "residual_iqr_s": 0.521, "field_median_slope": 0.0691, "robust_z": 4.79, "direction": "high_deg"}, {"driver": "Yuki Tsunoda", "code": "TSU", "team": "RB F1 Team", "stint": 1, "start_lap": 1, "end_lap": 9, "n_laps": 9, "n_clean": 7, "base_pace_s": 82.3432, "deg_slope_s_per_lap": 0.2022, "slope_ci_low": -0.2284, "slope_ci_high": 0.557, "median_lap_s": 82.957, "residual_iqr_s": 0.8904, "field_median_slope": 0.0691, "robust_z": 3.1, "direction": "high_deg"}, {"driver": "Yuki Tsunoda", "code": "TSU", "team": "RB F1 Team", "stint": 3, "start_lap": 28, "end_lap": 44, "n_laps": 17, "n_clean": 15, "base_pace_s": 80.8426, "deg_slope_s_per_lap": 0.1919, "slope_ci_low": 0.1328, "slope_ci_high": 0.2791, "median_lap_s": 80.653, "residual_iqr_s": 0.4301, "field_median_slope": 0.0691, "robust_z": 2.86, "direction": "high_deg"}, {"driver": "Daniel Ricciardo", "code": "RIC", "team": "RB F1 Team", "stint": 3, "start_lap": 43, "end_lap": 65, "n_laps": 23, "n_clean": 21, "base_pace_s": 83.1569, "deg_slope_s_per_lap": -0.0318, "slope_ci_low": -0.0992, "slope_ci_high": 0.0179, "median_lap_s": 80.194, "residual_iqr_s": 0.9517, "field_median_slope": 0.0691, "robust_z": -2.35, "direction": "low_deg"}, {"driver": "Logan Sargeant", "code": "SAR", "team": "Williams", "stint": 2, "start_lap": 15, "end_lap": 34, "n_laps": 20, "n_clean": 18, "base_pace_s": 82.0824, "deg_slope_s_per_lap": 0.1626, "slope_ci_low": 0.1337, "slope_ci_high": 0.1832, "median_lap_s": 82.3775, "residual_iqr_s": 0.2398, "field_median_slope": 0.0691, "robust_z": 2.18, "direction": "high_deg"}, {"driver": "Daniel Ricciardo", "code": "RIC", "team": "RB F1 Team", "stint": 1, "start_lap": 1, "end_lap": 16, "n_laps": 16, "n_clean": 14, "base_pace_s": 82.9653, "deg_slope_s_per_lap": -0.0216, "slope_ci_low": -0.0885, "slope_ci_high": 0.059, "median_lap_s": 82.4345, "residual_iqr_s": 0.4883, "field_median_slope": 0.0691, "robust_z": -2.12, "direction": "low_deg"}], "driver_metrics": [{"code": "NOR", "driver": "Lando Norris", "team": "McLaren", "median_clean_lap_s": 79.732, "consistency_iqr_s": 2.439, "mean_deg_slope": 0.063, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "LEC", "driver": "Charles Leclerc", "team": "Ferrari", "median_clean_lap_s": 79.786, "consistency_iqr_s": 2.118, "mean_deg_slope": 0.084, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "VER", "driver": "Max Verstappen", "team": "Red Bull", "median_clean_lap_s": 79.805, "consistency_iqr_s": 2.022, "mean_deg_slope": 0.078, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "PER", "driver": "Sergio P\u00e9rez", "team": "Red Bull", "median_clean_lap_s": 79.828, "consistency_iqr_s": 2.23, "mean_deg_slope": 0.096, "n_stints_fitted": 4, "teammate_delta_s": 0.023}, {"code": "PIA", "driver": "Oscar Piastri", "team": "McLaren", "median_clean_lap_s": 79.864, "consistency_iqr_s": 2.412, "mean_deg_slope": 0.066, "n_stints_fitted": 3, "teammate_delta_s": 0.132}, {"code": "RUS", "driver": "George Russell", "team": "Mercedes", "median_clean_lap_s": 79.922, "consistency_iqr_s": 1.436, "mean_deg_slope": 0.084, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "HAM", "driver": "Lewis Hamilton", "team": "Mercedes", "median_clean_lap_s": 79.979, "consistency_iqr_s": 1.701, "mean_deg_slope": 0.096, "n_stints_fitted": 3, "teammate_delta_s": 0.058}, {"code": "SAI", "driver": "Carlos Sainz", "team": "Ferrari", "median_clean_lap_s": 80.032, "consistency_iqr_s": 1.516, "mean_deg_slope": 0.087, "n_stints_fitted": 3, "teammate_delta_s": 0.246}, {"code": "GAS", "driver": "Pierre Gasly", "team": "Alpine F1 Team", "median_clean_lap_s": 80.432, "consistency_iqr_s": 1.605, "mean_deg_slope": 0.093, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "OCO", "driver": "Esteban Ocon", "team": "Alpine F1 Team", "median_clean_lap_s": 80.662, "consistency_iqr_s": 1.773, "mean_deg_slope": 0.091, "n_stints_fitted": 3, "teammate_delta_s": 0.23}, {"code": "HUL", "driver": "Nico H\u00fclkenberg", "team": "Haas F1 Team", "median_clean_lap_s": 80.976, "consistency_iqr_s": 1.817, "mean_deg_slope": 0.059, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "ALO", "driver": "Fernando Alonso", "team": "Aston Martin", "median_clean_lap_s": 81.103, "consistency_iqr_s": 2.139, "mean_deg_slope": 0.058, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "ZHO", "driver": "Guanyu Zhou", "team": "Sauber", "median_clean_lap_s": 81.242, "consistency_iqr_s": 1.745, "mean_deg_slope": 0.058, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "STR", "driver": "Lance Stroll", "team": "Aston Martin", "median_clean_lap_s": 81.268, "consistency_iqr_s": 1.615, "mean_deg_slope": 0.036, "n_stints_fitted": 3, "teammate_delta_s": 0.165}, {"code": "MAG", "driver": "Kevin Magnussen", "team": "Haas F1 Team", "median_clean_lap_s": 81.314, "consistency_iqr_s": 1.149, "mean_deg_slope": 0.056, "n_stints_fitted": 3, "teammate_delta_s": 0.338}, {"code": "RIC", "driver": "Daniel Ricciardo", "team": "RB F1 Team", "median_clean_lap_s": 81.348, "consistency_iqr_s": 1.136, "mean_deg_slope": 0.002, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "ALB", "driver": "Alexander Albon", "team": "Williams", "median_clean_lap_s": 81.477, "consistency_iqr_s": 1.981, "mean_deg_slope": 0.082, "n_stints_fitted": 3, "teammate_delta_s": 0.0}, {"code": "TSU", "driver": "Yuki Tsunoda", "team": "RB F1 Team", "median_clean_lap_s": 81.511, "consistency_iqr_s": 2.153, "mean_deg_slope": 0.119, "n_stints_fitted": 4, "teammate_delta_s": 0.163}, {"code": "BOT", "driver": "Valtteri Bottas", "team": "Sauber", "median_clean_lap_s": 81.587, "consistency_iqr_s": 1.532, "mean_deg_slope": 0.125, "n_stints_fitted": 3, "teammate_delta_s": 0.345}, {"code": "SAR", "driver": "Logan Sargeant", "team": "Williams", "median_clean_lap_s": 82.226, "consistency_iqr_s": 1.619, "mean_deg_slope": 0.087, "n_stints_fitted": 3, "teammate_delta_s": 0.749}], "lap_traces": {"HAM": {"driver": "Lewis Hamilton", "team": "Mercedes", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [1.87, 2.61, 3.04, 2.76, 2.99, 3.31, 3.56, 4.11, 4.28, 4.65, 4.89, 5.02, 5.66, 6.27, 7.15, 10.9, 24.35, 23.11, 21.78, 20.67, 19.67, 18.75, 13.36, 6.47, 7.08, 7.11, 8.01, 8.14, 8.11, 8.2, 8.51, 9.98, 10.4, 10.43, 10.9, 11.58, 11.18, 11.02, 11.39, 11.11, 11.06, 11.37, 15.22, 27.98, 27.22, 25.62, 20.84, 10.25, 10.97, 11.11, 11.43, 11.91, 12.38, 13.14, 13.9, 13.98, 14.48, 14.98, 15.5, 15.97, 16.45, 17.49, 17.89, 17.98, 17.52, 17.79], "lap_s": [84.441, 80.594, 80.421, 80.496, 81.05, 81.2, 81.223, 81.538, 81.207, 81.38, 81.192, 81.505, 81.45, 81.601, 81.977, 84.966, 98.332, 80.038, 79.307, 79.703, 79.915, 80.008, 79.788, 80.059, 79.972, 79.915, 80.59, 80.236, 79.757, 79.896, 80.327, 81.357, 80.258, 79.986, 80.651, 80.606, 79.404, 79.658, 80.037, 80.032, 79.6, 80.224, 84.149, 96.194, 78.759, 77.809, 78.212, 78.84, 78.976, 78.209, 78.277, 78.417, 78.605, 78.533, 78.788, 78.432, 78.623, 78.688, 78.64, 78.635, 78.839, 79.337, 78.942, 79.166, 79.009, 80.041]}, "LEC": {"driver": "Charles Leclerc", "team": "Ferrari", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [2.86, 3.84, 5.13, 4.93, 5.04, 5.39, 5.41, 5.82, 6.11, 6.12, 6.64, 6.82, 7.29, 7.9, 8.5, 8.17, 4.42, 4.05, 4.51, 4.85, 5.44, 5.97, 2.51, 0.9, 20.0, 19.49, 18.61, 17.84, 17.52, 17.39, 17.17, 16.79, 16.49, 16.14, 16.13, 16.11, 15.86, 15.69, 15.48, 14.84, 14.85, 14.71, 14.39, 11.03, 11.41, 11.99, 12.77, 20.86, 20.69, 20.8, 21.02, 20.99, 20.8, 21.41, 21.94, 22.12, 22.1, 22.13, 22.2, 22.48, 22.85, 23.09, 23.51, 23.47, 23.07, 22.71], "lap_s": [85.423, 80.842, 81.287, 80.569, 80.932, 81.227, 80.996, 81.393, 81.33, 81.014, 81.476, 81.561, 81.275, 81.594, 81.703, 80.893, 81.123, 80.915, 81.096, 81.159, 81.497, 81.451, 81.723, 85.337, 98.462, 79.381, 78.811, 79.324, 79.482, 79.675, 79.791, 79.509, 79.535, 79.61, 80.177, 79.907, 79.553, 79.64, 79.459, 79.665, 79.662, 79.781, 79.981, 80.064, 79.901, 80.001, 83.761, 97.516, 78.09, 78.182, 78.179, 77.897, 77.956, 78.385, 78.551, 78.53, 78.11, 78.213, 78.185, 78.447, 78.735, 78.533, 78.965, 79.03, 79.074, 79.41]}, "NOR": {"driver": "Lando Norris", "team": "McLaren", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [1.39, 1.74, 1.99, 1.93, 2.23, 2.41, 2.73, 3.19, 3.29, 3.51, 3.84, 3.82, 4.44, 5.11, 5.56, 4.8, 0.84, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.73, 9.87, 9.84, 9.46, 9.2, 9.13, 8.71, 8.84, 8.82, 9.07, 8.97, 9.26, 8.78, 8.21, 7.7, 7.25, 6.68, 5.94, 5.54, 4.73, 0.76, 0.0, 0.0, 0.0, 7.7, 6.82, 6.68, 5.84, 5.56, 5.34, 5.55, 5.89, 5.16, 4.93, 5.0, 4.83, 4.94, 4.39, 4.16, 3.8, 3.01, 2.31, 2.22], "lap_s": [83.953, 80.215, 80.243, 80.702, 81.134, 81.056, 81.293, 81.443, 81.143, 81.223, 81.285, 81.354, 81.432, 81.66, 81.541, 80.471, 80.908, 80.447, 80.635, 80.816, 80.907, 80.928, 85.185, 97.673, 78.503, 79.856, 79.317, 79.835, 79.72, 79.389, 80.145, 79.868, 80.09, 79.855, 80.478, 79.447, 79.225, 79.307, 79.215, 79.745, 78.911, 79.511, 79.499, 79.457, 78.754, 79.419, 82.986, 97.126, 77.377, 77.94, 77.115, 77.654, 77.914, 77.987, 78.363, 77.627, 77.893, 78.259, 77.945, 78.271, 77.805, 78.08, 78.174, 78.282, 78.773, 79.682]}, "RUS": {"driver": "George Russell", "team": "Mercedes", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [0.0, 0.0, 1.11, 1.18, 1.28, 1.47, 1.81, 2.25, 2.38, 2.68, 2.79, 2.8, 3.36, 3.85, 8.12, 27.13, 22.53, 20.76, 19.67, 18.82, 18.25, 17.42, 12.11, 5.19, 5.6, 6.0, 6.53, 6.63, 6.86, 7.09, 7.42, 7.83, 8.17, 8.42, 10.36, 14.81, 34.36, 32.91, 32.2, 31.32, 30.66, 29.77, 28.77, 24.37, 24.48, 23.35, 18.85, 9.48, 9.91, 10.13, 10.89, 13.2, 13.93, 15.01, 15.56, 16.0, 16.83, 17.28, 18.05, 18.99, 19.9, 20.9, 21.88, 22.18, 22.34, 22.32], "lap_s": [82.568, 79.857, 81.103, 80.843, 80.923, 81.07, 81.306, 81.436, 81.168, 81.308, 81.061, 81.383, 81.365, 81.482, 85.364, 100.24, 80.277, 79.511, 79.539, 79.972, 80.34, 80.093, 79.871, 80.032, 79.772, 80.279, 80.222, 80.201, 80.027, 80.038, 80.338, 80.301, 80.178, 80.204, 82.129, 84.372, 99.351, 78.367, 78.964, 79.428, 78.982, 79.033, 79.306, 79.019, 79.632, 78.291, 78.486, 80.06, 78.681, 78.29, 78.726, 80.241, 78.863, 78.86, 78.572, 78.792, 78.956, 78.641, 78.877, 79.108, 79.267, 79.304, 79.52, 79.372, 79.634, 79.751]}, "SAI": {"driver": "Carlos Sainz", "team": "Ferrari", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [3.52, 4.33, 4.38, 4.24, 4.21, 4.55, 4.72, 5.04, 5.22, 5.27, 5.78, 6.02, 6.38, 7.03, 11.36, 28.2, 23.99, 22.56, 23.0, 22.19, 21.4, 20.43, 15.51, 8.76, 9.11, 9.5, 11.6, 11.95, 12.22, 12.79, 13.42, 13.71, 14.02, 14.3, 14.82, 18.63, 37.41, 36.46, 35.33, 34.21, 33.47, 32.68, 31.54, 27.3, 26.92, 27.53, 23.57, 13.46, 14.72, 15.85, 16.94, 18.05, 19.17, 20.41, 23.73, 24.42, 25.26, 25.95, 26.81, 27.76, 28.55, 29.61, 30.55, 31.01, 31.16, 31.03], "lap_s": [86.085, 80.666, 80.046, 80.626, 80.8, 81.217, 81.146, 81.309, 81.221, 81.052, 81.459, 81.62, 81.163, 81.646, 85.427, 98.064, 80.665, 79.85, 81.079, 80.0, 80.125, 79.952, 80.261, 80.205, 79.709, 80.273, 81.788, 80.458, 80.061, 80.376, 80.642, 80.183, 80.145, 80.231, 80.708, 83.733, 98.592, 78.86, 78.539, 79.184, 78.909, 79.135, 79.157, 79.192, 79.136, 80.032, 79.02, 79.318, 79.52, 79.202, 79.046, 79.046, 79.259, 79.017, 81.334, 79.047, 78.97, 78.871, 78.978, 79.115, 79.151, 79.365, 79.479, 79.535, 79.612, 79.643]}, "VER": {"driver": "Max Verstappen", "team": "Red Bull", "laps": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66], "gap_s": [0.62, 0.63, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 16.37, 15.46, 14.61, 14.01, 12.82, 7.24, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 17.54, 16.0, 11.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "lap_s": [83.186, 79.871, 79.364, 80.766, 80.827, 80.876, 80.973, 80.989, 81.042, 81.003, 80.954, 81.376, 80.807, 80.989, 81.097, 81.223, 84.876, 97.657, 79.725, 79.966, 80.304, 79.742, 79.605, 79.701, 79.363, 79.882, 79.694, 80.101, 79.792, 79.807, 80.011, 79.891, 79.836, 79.958, 80.185, 79.926, 79.803, 79.813, 79.669, 80.31, 79.648, 79.92, 80.301, 83.427, 97.053, 77.886, 77.998, 78.416, 78.254, 78.074, 77.958, 77.931, 78.14, 77.776, 78.021, 78.354, 78.127, 78.187, 78.114, 78.165, 78.36, 78.301, 78.543, 79.072, 79.467, 79.774]}}, "track_profiles": [{"circuit_id": 22, "races": 3, "median_deg_slope": 0.1745, "pit_loss_s": 22.94, "neutralisation_rate": 0.0955, "position_volatility": 1.8, "stops_per_driver": 2.33, "circuit": "Suzuka Circuit", "country": "Japan"}, {"circuit_id": 13, "races": 3, "median_deg_slope": 0.1695, "pit_loss_s": 18.61, "neutralisation_rate": 0.0012, "position_volatility": 2.89, "stops_per_driver": 1.95, "circuit": "Circuit de Spa-Francorchamps", "country": "Belgium"}, {"circuit_id": 17, "races": 1, "median_deg_slope": 0.149, "pit_loss_s": 24.73, "neutralisation_rate": 0.1437, "position_volatility": 2.47, "stops_per_driver": 2.0, "circuit": "Shanghai International Circuit", "country": "China"}, {"circuit_id": 3, "races": 3, "median_deg_slope": 0.1256, "pit_loss_s": 24.75, "neutralisation_rate": 0.0085, "position_volatility": 3.35, "stops_per_driver": 2.5, "circuit": "Bahrain International Circuit", "country": "Bahrain"}, {"circuit_id": 21, "races": 2, "median_deg_slope": 0.0743, "pit_loss_s": 39.53, "neutralisation_rate": 0.0445, "position_volatility": 3.28, "stops_per_driver": 1.335, "circuit": "Autodromo Enzo e Dino Ferrari", "country": "Italy"}, {"circuit_id": 4, "races": 3, "median_deg_slope": 0.0691, "pit_loss_s": 22.61, "neutralisation_rate": 0.0008, "position_volatility": 3.17, "stops_per_driver": 2.15, "circuit": "Circuit de Barcelona-Catalunya", "country": "Spain"}, {"circuit_id": 24, "races": 3, "median_deg_slope": 0.0602, "pit_loss_s": 24.0, "neutralisation_rate": 0.0018, "position_volatility": 2.63, "stops_per_driver": 1.55, "circuit": "Yas Marina Circuit", "country": "UAE"}, {"circuit_id": 18, "races": 3, "median_deg_slope": 0.0601, "pit_loss_s": 22.57, "neutralisation_rate": 0.1147, "position_volatility": 4.2, "stops_per_driver": 2.44, "circuit": "Aut\u00f3dromo Jos\u00e9 Carlos Pace", "country": "Brazil"}, {"circuit_id": 70, "races": 3, "median_deg_slope": 0.0567, "pit_loss_s": 21.78, "neutralisation_rate": 0.0136, "position_volatility": 3.2, "stops_per_driver": 2.25, "circuit": "Red Bull Ring", "country": "Austria"}, {"circuit_id": 11, "races": 3, "median_deg_slope": 0.0526, "pit_loss_s": 21.9, "neutralisation_rate": 0.0008, "position_volatility": 3.65, "stops_per_driver": 2.0, "circuit": "Hungaroring", "country": "Hungary"}, {"circuit_id": 32, "races": 3, "median_deg_slope": 0.0461, "pit_loss_s": 23.25, "neutralisation_rate": 0.0477, "position_volatility": 2.94, "stops_per_driver": 1.17, "circuit": "Aut\u00f3dromo Hermanos Rodr\u00edguez", "country": "Mexico"}, {"circuit_id": 69, "races": 3, "median_deg_slope": 0.0445, "pit_loss_s": 21.24, "neutralisation_rate": 0.0473, "position_volatility": 3.88, "stops_per_driver": 1.8, "circuit": "Circuit of the Americas", "country": "USA"}, {"circuit_id": 14, "races": 3, "median_deg_slope": 0.0441, "pit_loss_s": 25.71, "neutralisation_rate": 0.005, "position_volatility": 2.11, "stops_per_driver": 1.4, "circuit": "Autodromo Nazionale di Monza", "country": "Italy"}, {"circuit_id": 80, "races": 2, "median_deg_slope": 0.0433, "pit_loss_s": 24.335, "neutralisation_rate": 0.0594, "position_volatility": 4.175, "stops_per_driver": 1.75, "circuit": "Las Vegas Strip Street Circuit", "country": "United States"}, {"circuit_id": 78, "races": 2, "median_deg_slope": 0.0385, "pit_loss_s": 28.61, "neutralisation_rate": 0.1364, "position_volatility": 3.04, "stops_per_driver": 3.165, "circuit": "Losail International Circuit", "country": "Qatar"}, {"circuit_id": 39, "races": 3, "median_deg_slope": 0.0358, "pit_loss_s": 23.94, "neutralisation_rate": 0.0726, "position_volatility": 3.3, "stops_per_driver": 3.6, "circuit": "Circuit Park Zandvoort", "country": "Netherlands"}, {"circuit_id": 34, "races": 1, "median_deg_slope": 0.0318, "pit_loss_s": 29.31, "neutralisation_rate": 0.0504, "position_volatility": 2.44, "stops_per_driver": 1.25, "circuit": "Circuit Paul Ricard", "country": "France"}, {"circuit_id": 1, "races": 3, "median_deg_slope": 0.0311, "pit_loss_s": 20.89, "neutralisation_rate": 0.1363, "position_volatility": 2.88, "stops_per_driver": 1.89, "circuit": "Albert Park Grand Prix Circuit", "country": "Australia"}, {"circuit_id": 9, "races": 3, "median_deg_slope": 0.0256, "pit_loss_s": 22.89, "neutralisation_rate": 0.1093, "position_volatility": 2.94, "stops_per_driver": 2.37, "circuit": "Silverstone Circuit", "country": "UK"}, {"circuit_id": 77, "races": 3, "median_deg_slope": 0.0246, "pit_loss_s": 22.0, "neutralisation_rate": 0.0616, "position_volatility": 2.17, "stops_per_driver": 1.06, "circuit": "Jeddah Corniche Circuit", "country": "Saudi Arabia"}, {"circuit_id": 73, "races": 3, "median_deg_slope": 0.0183, "pit_loss_s": 23.42, "neutralisation_rate": 0.027, "position_volatility": 3.5, "stops_per_driver": 1.15, "circuit": "Baku City Circuit", "country": "Azerbaijan"}, {"circuit_id": 79, "races": 3, "median_deg_slope": 0.0145, "pit_loss_s": 22.46, "neutralisation_rate": 0.0396, "position_volatility": 2.9, "stops_per_driver": 1.25, "circuit": "Miami International Autodrome", "country": "USA"}, {"circuit_id": 15, "races": 3, "median_deg_slope": 0.0078, "pit_loss_s": 30.18, "neutralisation_rate": 0.0526, "position_volatility": 4.14, "stops_per_driver": 1.15, "circuit": "Marina Bay Street Circuit", "country": "Singapore"}, {"circuit_id": 7, "races": 3, "median_deg_slope": 0.0072, "pit_loss_s": 23.85, "neutralisation_rate": 0.0726, "position_volatility": 3.83, "stops_per_driver": 1.65, "circuit": "Circuit Gilles Villeneuve", "country": "Canada"}, {"circuit_id": 6, "races": 3, "median_deg_slope": -0.0461, "pit_loss_s": 42.92, "neutralisation_rate": 0.0562, "position_volatility": 1.89, "stops_per_driver": 1.85, "circuit": "Circuit de Monaco", "country": "Monaco"}], "compliance_audits": [{"agent": "strategy_analyst", "recommendation": {"recommended_pit_lap": 17, "race_distance_laps": 66, "compound_plan": ["soft", "medium", "soft"], "stint_lengths": [17, 30, 19], "auto_execute": false}, "verdicts": [{"rule_id": "SR-30.5m-two-compounds", "passed": true, "detail": "compound plan ['soft', 'medium', 'soft'] uses 2 distinct compound(s)"}, {"rule_id": "OPS-pit-window-bounds", "passed": true, "detail": "pit lap 17 vs race distance 66"}, {"rule_id": "TEAM-stint-life-limit", "passed": true, "detail": "stint lengths [17, 30, 19], limit 40"}, {"rule_id": "GOV-advisory-only", "passed": true, "detail": "auto_execute must be false"}], "ruleset_version": "2026.1", "model_id": "", "timestamp": 1783277213.011762, "passed": true, "record_hash": "c492a5e66923f303"}, {"agent": "strategy_analyst", "recommendation": {"recommended_pit_lap": 17, "race_distance_laps": 66, "compound_plan": ["medium", "medium"], "stint_lengths": [17, 30, 19], "auto_execute": true}, "verdicts": [{"rule_id": "SR-30.5m-two-compounds", "passed": false, "detail": "compound plan ['medium', 'medium'] uses 1 distinct compound(s)"}, {"rule_id": "OPS-pit-window-bounds", "passed": true, "detail": "pit lap 17 vs race distance 66"}, {"rule_id": "TEAM-stint-life-limit", "passed": true, "detail": "stint lengths [17, 30, 19], limit 40"}, {"rule_id": "GOV-advisory-only", "passed": false, "detail": "auto_execute must be false"}], "ruleset_version": "2026.1", "model_id": "", "timestamp": 1783277213.0118558, "passed": false, "record_hash": "60ed47653acfb5f1"}], "stint_fits_full_count": 62};
+const BAKED_B = {"stint_analyst": "Three things matter. First, Norris is the tyre reference: 0.063 s/lap fuel-corrected decay against a field median of 0.069, on the fastest median clean pace (79.732s). Second, Perez is burning tyres at 0.096 s/lap, roughly 50% over Verstappen's 0.078; on a 22.6s pit-loss circuit that closes any offset window he had. Third, Russell's stint residual IQR of 1.436s is the tightest in the top six; his fitted slopes (0.084) are trustworthy, others carry wider bands. Fuel slope is -0.047 s/lap, so raw late-stint pace flatters everyone by about a second over a 20-lap stint; use the corrected slopes, not the screen deltas. Fits for Tsunoda are weak (CI spans 0.13-0.27), treat his numbers as indicative only.", "rival_watcher": "Realized: the undercut is paying heavily today. Hamilton took 15.87s out of Piastri across the L16/L21 cycle (gap 3.19 -> 19.06) and 10.54s out of Leclerc at L43/L47. Perez gained 11.21s on Stroll from a four-lap offset. Measured swings of 10-16s against a 22.61s pit loss mean a rival pitting first from inside ~4s converts to track position almost every time. Largest open exposure: any car defending inside 4s with tyres older than five laps is losing the position if the rival commits first. Cover, or accept the offset and plan the overtake on pace delta.", "deg_explainer": "Bottas stint 2 (L12-28) decays at 0.275 s/lap, z=4.79 versus the 0.069 field median, CI 0.204-0.313, so the signal is real, not fit noise. Ranked hypotheses: (1) compound-specific failure or graining on this set: his own stints 1 and 3 are normal (0.042, 0.059) and teammate Zhou's parallel stint 2 is 0.053, so the car is not the cause; confirmed by tyre compound and set history. (2) Progressive traffic exposure: residual IQR 0.521s is elevated but not extreme; confirmed by GPS gap-ahead density. (3) Damage picked up near L12: would need floor/aero telemetry. The L28 stop, earlier than the strategy around him, is consistent with the team seeing hypothesis 1 live.", "driver_coach": "Strength: tyre usage. Fuel-corrected decay of 0.063 s/lap was the best among the lead group (Verstappen 0.078, Piastri 0.066) while holding the fastest median clean lap, 79.732s vs Verstappen's 79.805s. That combination is what made the long first stint viable at all. Cost: lap-to-lap spread. Consistency IQR of 2.439s against Verstappen's 2.022s and Russell's 1.436s; roughly 0.4s of in-stint variance conceded to the car ahead, which matters when the final gap was 2.22s. Focus: the variance is concentrated in the middle stint per the residuals; review L30-45 traffic management. Strategy note for the engineer, not the driver: the pit model priced the L23 stop at 4.38s versus an L17 stop.", "race_reporter": "Executive summary: Barcelona 2024 was decided in the pit windows, not on track. The undercut was worth 10-16s per cycle against a 22.6s pit loss. Verstappen's first stop was priced within 0.06s of the model optimum; Norris's was 4.38s off, and he finished 2.22s behind.\n\nThe strategy story. Barcelona ran clean (neutralisation rate 0.0008 across the era sample), which made it a pure tyre-offset race. Pit loss measured 22.61s (IQR 2.24s over 42 stops). Eighteen pit battles resolved in the data, and the undercut won nearly all of them: Hamilton's L16 stop swung 15.87s against Piastri's L21 response, Perez took 11.21s from Stroll on a four-lap offset, and Hamilton repeated the move on Leclerc late, 10.54s across L43/L47. With swings of that size, first-mover advantage dominated the middle phase.\n\nAt the front, the counterfactual model (fixed pit loss, linear per-stint deg, no traffic interaction) prices Verstappen's L17 first stop within 0.06s of his optimum. Norris, on the race's best tyre life (0.063 s/lap corrected), stayed out to L23; the same model says L17 was worth 4.38s of race time. He crossed the line 2.22s behind. Under the model's assumptions, the win was live at the first stop. The anomaly desk flagged Bottas's second stint at 0.275 s/lap decay (z=4.79, field median 0.069) with teammate and own-adjacent stints normal, consistent with a compound or set-specific problem and an early L28 stop.", "track_historian": "Barcelona sits mid-field on tyre stress: median corrected decay 0.069 s/lap across 2022-2024 against a 25-circuit spread of 0.046-0.175. Its defining features are elsewhere: the lowest neutralisation rate in the sample (0.0008; effectively no SC/VSC influence) and 2.15 stops per driver, so strategy here is a deterministic offset game rather than an opportunism game. Nearest neighbours on the feature set: Red Bull Ring (deg 0.057, pit loss 21.8s) and Yas Marina (0.060, 24.0s). What transfers from those races: undercut-first priors, pit-loss sensitive window planning, low weighting on SC gambles. What does not: position volatility. Barcelona's 3.17 places of average grid-to-finish movement exceeds both neighbours, so track position is more recoverable on pace here; a deg offset is worth defending with, not just protecting.", "compliance_guardian": "NON-COMPLIANT. SR-30.5m-two-compounds: the plan runs medium/medium; a dry race requires two distinct dry compounds. Smallest fix: make either stint soft or hard. GOV-advisory-only: auto_execute is set true; agent recommendations must remain advisory. Smallest fix: set auto_execute false and route through the race engineer. All other verdicts passed."};
+const BAKED_BT = [{"protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end", "freeze_lap": 20, "deg_continuation": [{"code": "HUL", "stint": 2, "fit_window": [13, 20], "scored_laps": [21, 37], "n_scored": 17, "n_fit_clean_laps": 6, "pred_slope_s_per_lap": 0.2385, "mae_s": 1.613, "bias_s": 1.569}, {"code": "PER", "stint": 2, "fit_window": [14, 20], "scored_laps": [21, 30], "n_scored": 10, "n_fit_clean_laps": 5, "pred_slope_s_per_lap": 0.1245, "mae_s": 0.429, "bias_s": -0.399}, {"code": "BOT", "stint": 2, "fit_window": [12, 20], "scored_laps": [21, 27], "n_scored": 7, "n_fit_clean_laps": 7, "pred_slope_s_per_lap": 0.3609, "mae_s": 0.976, "bias_s": 0.976}, {"code": "MAG", "stint": 2, "fit_window": [11, 20], "scored_laps": [21, 28], "n_scored": 8, "n_fit_clean_laps": 8, "pred_slope_s_per_lap": 0.0623, "mae_s": 0.902, "bias_s": -0.902}, {"code": "OCO", "stint": 2, "fit_window": [14, 20], "scored_laps": [21, 36], "n_scored": 16, "n_fit_clean_laps": 5, "pred_slope_s_per_lap": 0.3671, "mae_s": 2.411, "bias_s": 2.411}, {"code": "LEC", "stint": 1, "fit_window": [1, 20], "scored_laps": [21, 23], "n_scored": 3, "n_fit_clean_laps": 18, "pred_slope_s_per_lap": 0.1117, "mae_s": 0.09, "bias_s": -0.021}, {"code": "TSU", "stint": 2, "fit_window": [10, 20], "scored_laps": [21, 26], "n_scored": 6, "n_fit_clean_laps": 9, "pred_slope_s_per_lap": 0.0865, "mae_s": 0.502, "bias_s": -0.389}, {"code": "ZHO", "stint": 2, "fit_window": [10, 20], "scored_laps": [21, 40], "n_scored": 20, "n_fit_clean_laps": 9, "pred_slope_s_per_lap": 0.259, "mae_s": 2.657, "bias_s": 2.657}], "deg_summary": {"n_stints": 8, "mae_s": 1.198, "bias_s": 0.738, "mature_fits_mae_s": 0.09, "mature_fits_n": 1}, "undercut_calls": [{"attacker": "Lewis Hamilton", "defender": "Oscar Piastri", "attacker_pit_lap": 16, "defender_pit_lap": 21, "observed_by_freeze_s": -10.41, "modeled_remainder_s": 25.17, "predicted_swing_s": 14.76, "realized_swing_s": 15.87, "sign_correct": true, "abs_error_s": 1.11}], "undercut_summary": {"n_calls": 1, "sign_hit_rate": 1.0, "mean_abs_error_s": 1.11}, "pit_window": [{"code": "LEC", "predicted_optimal_lap": 28, "actual_pit_lap": 24, "posthoc_optimal_lap": 21, "prediction_at_horizon_boundary": false, "lap_error_vs_posthoc": 7, "actual_left_on_table_s": 0.8}, {"code": "NOR", "predicted_optimal_lap": 26, "actual_pit_lap": 23, "posthoc_optimal_lap": 17, "prediction_at_horizon_boundary": false, "lap_error_vs_posthoc": 9, "actual_left_on_table_s": 4.38}, {"code": "PIA", "predicted_optimal_lap": 24, "actual_pit_lap": 21, "posthoc_optimal_lap": 15, "prediction_at_horizon_boundary": false, "lap_error_vs_posthoc": 9, "actual_left_on_table_s": 4.34}], "session": "Spanish Grand Prix", "pit_loss_s": 22.61}, {"protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end", "freeze_lap": 30, "deg_continuation": [{"code": "HAM", "stint": 2, "fit_window": [17, 30], "scored_laps": [31, 42], "n_scored": 12, "n_fit_clean_laps": 12, "pred_slope_s_per_lap": 0.0932, "mae_s": 0.562, "bias_s": 0.332}, {"code": "ALO", "stint": 2, "fit_window": [20, 30], "scored_laps": [31, 44], "n_scored": 14, "n_fit_clean_laps": 9, "pred_slope_s_per_lap": 0.1774, "mae_s": 1.676, "bias_s": 1.676}, {"code": "HUL", "stint": 2, "fit_window": [13, 30], "scored_laps": [31, 37], "n_scored": 7, "n_fit_clean_laps": 16, "pred_slope_s_per_lap": 0.0725, "mae_s": 0.229, "bias_s": 0.156}, {"code": "RIC", "stint": 2, "fit_window": [17, 30], "scored_laps": [31, 41], "n_scored": 11, "n_fit_clean_laps": 12, "pred_slope_s_per_lap": 0.0951, "mae_s": 0.474, "bias_s": 0.339}, {"code": "VER", "stint": 2, "fit_window": [18, 30], "scored_laps": [31, 43], "n_scored": 13, "n_fit_clean_laps": 11, "pred_slope_s_per_lap": 0.0491, "mae_s": 0.251, "bias_s": -0.24}, {"code": "SAI", "stint": 2, "fit_window": [16, 30], "scored_laps": [31, 35], "n_scored": 5, "n_fit_clean_laps": 13, "pred_slope_s_per_lap": 0.0753, "mae_s": 0.255, "bias_s": 0.103}, {"code": "OCO", "stint": 2, "fit_window": [14, 30], "scored_laps": [31, 36], "n_scored": 6, "n_fit_clean_laps": 15, "pred_slope_s_per_lap": 0.1575, "mae_s": 0.568, "bias_s": 0.568}, {"code": "STR", "stint": 2, "fit_window": [18, 30], "scored_laps": [31, 36], "n_scored": 6, "n_fit_clean_laps": 11, "pred_slope_s_per_lap": 0.0907, "mae_s": 0.382, "bias_s": 0.123}, {"code": "GAS", "stint": 2, "fit_window": [15, 30], "scored_laps": [31, 37], "n_scored": 7, "n_fit_clean_laps": 14, "pred_slope_s_per_lap": 0.1246, "mae_s": 0.409, "bias_s": 0.052}, {"code": "NOR", "stint": 2, "fit_window": [24, 30], "scored_laps": [31, 46], "n_scored": 16, "n_fit_clean_laps": 5, "pred_slope_s_per_lap": 0.3059, "mae_s": 3.153, "bias_s": 3.153}, {"code": "RUS", "stint": 2, "fit_window": [16, 30], "scored_laps": [31, 35], "n_scored": 5, "n_fit_clean_laps": 13, "pred_slope_s_per_lap": 0.0789, "mae_s": 0.428, "bias_s": -0.331}, {"code": "ALB", "stint": 2, "fit_window": [19, 30], "scored_laps": [31, 42], "n_scored": 12, "n_fit_clean_laps": 10, "pred_slope_s_per_lap": 0.21, "mae_s": 1.238, "bias_s": 1.165}, {"code": "ZHO", "stint": 2, "fit_window": [10, 30], "scored_laps": [31, 40], "n_scored": 10, "n_fit_clean_laps": 19, "pred_slope_s_per_lap": 0.056, "mae_s": 0.305, "bias_s": 0.058}, {"code": "PIA", "stint": 2, "fit_window": [22, 30], "scored_laps": [31, 45], "n_scored": 15, "n_fit_clean_laps": 7, "pred_slope_s_per_lap": 0.133, "mae_s": 0.919, "bias_s": 0.898}, {"code": "SAR", "stint": 2, "fit_window": [15, 30], "scored_laps": [31, 33], "n_scored": 3, "n_fit_clean_laps": 14, "pred_slope_s_per_lap": 0.1896, "mae_s": 0.508, "bias_s": 0.508}], "deg_summary": {"n_stints": 15, "mae_s": 0.757, "bias_s": 0.571, "mature_fits_mae_s": 0.467, "mature_fits_n": 12}, "undercut_calls": [], "undercut_summary": {"n_calls": 0, "sign_hit_rate": null, "mean_abs_error_s": null}, "pit_window": [], "session": "Spanish Grand Prix", "pit_loss_s": 22.61}, {"protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end", "freeze_lap": 40, "deg_continuation": [{"code": "ALO", "stint": 2, "fit_window": [20, 40], "scored_laps": [41, 44], "n_scored": 4, "n_fit_clean_laps": 19, "pred_slope_s_per_lap": 0.081, "mae_s": 1.009, "bias_s": 1.009}, {"code": "PER", "stint": 3, "fit_window": [32, 40], "scored_laps": [41, 48], "n_scored": 8, "n_fit_clean_laps": 7, "pred_slope_s_per_lap": 0.0653, "mae_s": 0.268, "bias_s": -0.226}, {"code": "BOT", "stint": 3, "fit_window": [29, 40], "scored_laps": [41, 64], "n_scored": 24, "n_fit_clean_laps": 10, "pred_slope_s_per_lap": 0.1154, "mae_s": 1.134, "bias_s": 0.455}, {"code": "MAG", "stint": 3, "fit_window": [30, 40], "scored_laps": [41, 64], "n_scored": 24, "n_fit_clean_laps": 9, "pred_slope_s_per_lap": 0.1322, "mae_s": 0.836, "bias_s": 0.486}, {"code": "VER", "stint": 2, "fit_window": [18, 40], "scored_laps": [41, 43], "n_scored": 3, "n_fit_clean_laps": 21, "pred_slope_s_per_lap": 0.0518, "mae_s": 0.236, "bias_s": 0.028}, {"code": "LEC", "stint": 2, "fit_window": [25, 40], "scored_laps": [41, 46], "n_scored": 6, "n_fit_clean_laps": 14, "pred_slope_s_per_lap": 0.0729, "mae_s": 0.096, "bias_s": 0.003}, {"code": "NOR", "stint": 2, "fit_window": [24, 40], "scored_laps": [41, 46], "n_scored": 6, "n_fit_clean_laps": 15, "pred_slope_s_per_lap": 0.0408, "mae_s": 0.257, "bias_s": 0.257}, {"code": "TSU", "stint": 3, "fit_window": [28, 40], "scored_laps": [41, 43], "n_scored": 3, "n_fit_clean_laps": 11, "pred_slope_s_per_lap": 0.184, "mae_s": 1.285, "bias_s": -0.891}, {"code": "PIA", "stint": 2, "fit_window": [22, 40], "scored_laps": [41, 45], "n_scored": 5, "n_fit_clean_laps": 17, "pred_slope_s_per_lap": 0.0381, "mae_s": 0.306, "bias_s": -0.206}], "deg_summary": {"n_stints": 9, "mae_s": 0.603, "bias_s": 0.102, "mature_fits_mae_s": 0.618, "mature_fits_n": 7}, "undercut_calls": [{"attacker": "Lance Stroll", "defender": "Daniel Ricciardo", "attacker_pit_lap": 37, "defender_pit_lap": 42, "observed_by_freeze_s": -15.86, "modeled_remainder_s": 25.0, "predicted_swing_s": 9.14, "realized_swing_s": 8.04, "sign_correct": true, "abs_error_s": 1.1}], "undercut_summary": {"n_calls": 1, "sign_hit_rate": 1.0, "mean_abs_error_s": 1.1}, "pit_window": [], "session": "Spanish Grand Prix", "pit_loss_s": 22.61}];
+
+const C = {purple:'#B57BFF',green:'#3DDC84',yellow:'#F5C542',red:'#F0524D',dim:'#8B95A5',line:'#2A303B',
+  teams:{'VER':'#3671C6','NOR':'#FF8000','LEC':'#E8002D','HAM':'#27F4D2','RUS':'#27B4A2','SAI':'#B8002D','PIA':'#FFB266'}};
+const PALETTE = ['#3671C6','#FF8000','#E8002D','#27F4D2','#27B4A2','#B8002D','#B57BFF','#3DDC84','#F5C542','#58A6FF','#F0524D','#9BE1FF'];
+if (window.Chart){
+  Chart.defaults.color = '#8B95A5';
+  Chart.defaults.borderColor = '#242A34';
+  Chart.defaults.font.family = "ui-monospace,'SF Mono',Consolas,monospace";
+  Chart.defaults.font.size = 11;
+}
+
+let CHARTS = [];
+const el = id => document.getElementById(id);
+const show = (id, on) => { el(id).style.display = on ? '' : 'none'; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const surname = name => String(name || '').split(' ').pop();
+const colorFor = (code, i) => C.teams[code] || PALETTE[i % PALETTE.length];
+const chart = (canvas, cfg) => {
+  if (!window.Chart) return null;  // charts degrade; tables, stats, and briefs still render
+  const c = new Chart(canvas, cfg); CHARTS.push(c); return c;
+};
+
+const BSET = {briefRival:'rival_watcher', briefStint:'stint_analyst', briefDeg:'deg_explainer',
+  briefCoach:'driver_coach', briefTrack:'track_historian', briefComp:'compliance_guardian',
+  briefReport:'race_reporter'};
+
+function setBrief(id, briefs, key){
+  const p = el(id);
+  const v = briefs ? briefs[key] : null;
+  if (typeof v === 'string' && v.trim()){ p.textContent = v; p.style.color = ''; }
+  else { p.textContent = 'Brief not generated for this race. Use regenerate with AWS credentials to invoke the agents.'; p.style.color = 'var(--faint)'; }
+}
+
+let LAST = null;
+const RACE_SECTIONS = ['secTrace','secCF','secUndercut','secAnom','secDrivers','secTracks','secCompliance','secBacktest','secReporter'];
+const DRILL_SECTIONS = ['secEmpty','secSessionView','secDriverView','secSeasonView'];
+
+function setHeader(year, main, subHtml){
+  el('hdrTitle').innerHTML = (year ? `<span class="yr">${esc(year)}</span> ` : '') + esc(main);
+  el('hdrSub').innerHTML = subHtml;
+  document.title = `F1 Agentic Race Analysis - ${year ? year + ' ' : ''}${main}`;
+}
+
+function render(R, B, BACKTESTS){
+  CHARTS.forEach(c => c.destroy()); CHARTS = [];
+  B = B || {}; BACKTESTS = BACKTESTS || [];
+  LAST = {R, B, BT: BACKTESTS};
+  DRILL_SECTIONS.forEach(id => show(id, false));
+  show('statstrip', true);
+
+  // ---- header always mirrors the rendered race
+  const circuit = R.race.circuit || (R.race.name === 'Spanish Grand Prix' ? 'Circuit de Barcelona-Catalunya' : null);
+  setHeader(R.race.year, R.race.name,
+    [circuit && esc(circuit), `${esc(R.race.laps)} laps`, `${esc(R.race.drivers)} drivers`,
+     'fits reproducible from <span style="font-family:var(--mono)">results.json</span>']
+      .filter(Boolean).join(' &middot; '));
+
+  // ---- stat strip
+  const pl = R.pit_loss || {};
+  const strip = [
+    [pl.pit_loss_s != null ? pl.pit_loss_s + 's' : '&ndash;', `pit loss (median, ${pl.n_stops_used ?? 0} stops)`],
+    [R.fuel_slope_s_per_lap + ' s/lap', 'field fuel slope'],
+    [R.stint_fits_full_count ?? R.stint_fits.length, 'stint models fitted'],
+    [R.undercut_events.length, 'pit battles measured'],
+    [(R.deg_anomalies || []).length, 'deg anomalies flagged'],
+    [Object.keys(B).length, 'agent briefs generated'],
+  ];
+  el('statstrip').innerHTML = strip.map(s => `<div class="stat"><div class="v">${s[0]}</div><div class="l">${s[1]}</div></div>`).join('');
+
+  // ---- gap chart
+  const traces = R.lap_traces || {};
+  const codes = Object.keys(traces);
+  show('secTrace', codes.length > 0);
+  if (codes.length){
+    const pitLaps = {};
+    R.stint_fits.forEach(f => { if (!pitLaps[f.code]) pitLaps[f.code] = []; if (f.stint > 1) pitLaps[f.code].push(f.start_lap - 1); });
+    const gapDS = codes.map((code, i) => { const t = traces[code]; return {
+      label: code, data: t.laps.map((l, j) => ({x: l, y: t.gap_s[j]})),
+      borderColor: colorFor(code, i), backgroundColor: colorFor(code, i),
+      borderWidth: 1.8, pointRadius: t.laps.map(l => (pitLaps[code] || []).includes(l) ? 4 : 0),
+      pointStyle: 'rectRot', tension: .25,
+    };});
+    chart(el('gapChart'), {type:'line', data:{datasets: gapDS}, options:{
+      maintainAspectRatio:false, interaction:{mode:'nearest', intersect:false},
+      scales:{x:{type:'linear', title:{display:true, text:'LAP'}, min:1, max:R.race.laps},
+              y:{reverse:true, title:{display:true, text:'GAP TO LEADER (S)'}}},
+      plugins:{legend:{position:'top', labels:{boxWidth:10, boxHeight:10}},
+        tooltip:{callbacks:{label: c => ` ${c.dataset.label}  L${c.parsed.x}  +${c.parsed.y.toFixed(2)}s`}}}
+    }});
+  }
+
+  // ---- counterfactual: the viable run with the most time left on the table
+  const cfs = (R.counterfactuals || []).filter(c => c.viable);
+  const cf = cfs.length ? cfs.reduce((a, b) => Math.abs(b.time_left_on_table_s) > Math.abs(a.time_left_on_table_s) ? b : a) : null;
+  show('secCF', !!cf);
+  if (cf){
+    const dm = R.driver_metrics || [];
+    const cfName = surname((dm.find(d => d.code === cf.driver) || {}).driver) || cf.driver;
+    el('cfBig').textContent = cf.time_left_on_table_s.toFixed(2) + 's';
+    el('cfCapLeft').textContent = `modeled race time ${cfName} left on the table by stopping on L${cf.actual_pit_lap} instead of L${cf.optimal_pit_lap}`;
+    const trace = traces[cf.driver];
+    const winner = codes.map(c => traces[c]).find(t => t.gap_s[t.gap_s.length - 1] === 0);
+    const gap = trace ? trace.gap_s[trace.gap_s.length - 1] : null;
+    const hasGap = gap != null && gap > 0 && winner;
+    show('cfGapBox', hasGap); show('cfDiv', hasGap);
+    if (hasGap){
+      el('cfGap').textContent = gap.toFixed(2) + 's';
+      el('cfCapGap').textContent = `actual finishing gap to ${surname(winner.driver)}.`
+        + (cf.time_left_on_table_s > gap ? ' Under the model\'s assumptions, the win was live at the first stop.' : '');
+    }
+    chart(el('cfChart'), {type:'line', data:{
+      labels: cf.curve.map(p => p.pit_lap),
+      datasets:[{data: cf.curve.map(p => p.delta_vs_actual_s), borderColor:C.purple, backgroundColor:C.purple,
+        borderWidth:2, pointRadius: cf.curve.map(p => p.pit_lap === cf.actual_pit_lap || p.pit_lap === cf.optimal_pit_lap ? 5 : 0),
+        pointBackgroundColor: cf.curve.map(p => p.pit_lap === cf.actual_pit_lap ? C.red : C.green), tension:.3}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:`FIRST PIT LAP (${cf.driver})`}}, y:{title:{display:true, text:'DELTA VS ACTUAL (S)'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` pit L${c.label}: ${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toFixed(2)}s vs actual`}}}}
+    });
+  }
+
+  // ---- undercut table
+  show('secUndercut', R.undercut_events.length > 0 || !!B.rival_watcher);
+  const uc = [...R.undercut_events].sort((a, b) => Math.abs(b.swing_s) - Math.abs(a.swing_s)).slice(0, 8);
+  el('ucTable').innerHTML =
+   `<tr><th>attacker</th><th>defender</th><th class="num">pit laps</th><th class="num">gap before</th><th class="num">gap after</th><th class="num">swing</th></tr>` +
+   (uc.length ? uc.map(e => `<tr><td>${esc(surname(e.attacker))}</td><td>${esc(surname(e.defender))}</td><td class="num">L${e.attacker_pit_lap}/L${e.defender_pit_lap}</td><td class="num">${e.gap_before_s.toFixed(2)}</td><td class="num">${e.gap_after_s.toFixed(2)}</td><td class="num ${e.swing_s > 0 ? 'pos' : 'neg'}">${e.swing_s > 0 ? '+' : ''}${e.swing_s.toFixed(2)}s</td></tr>`).join('')
+    : '<tr><td colspan="6">no pit battles resolved in the data</td></tr>');
+
+  // ---- anomalies table
+  const anoms = R.deg_anomalies || [];
+  show('secAnom', anoms.length > 0);
+  if (anoms.length){
+    el('anomTable').innerHTML =
+     `<tr><th>driver</th><th class="num">stint</th><th class="num">laps</th><th class="num">slope s/lap</th><th class="num">field</th><th class="num">z</th><th></th></tr>` +
+     anoms.slice(0, 6).map(a => `<tr><td>${esc(surname(a.driver))}</td><td class="num">${a.stint}</td><td class="num">L${a.start_lap}-${a.end_lap}</td><td class="num ${a.direction === 'high_deg' ? 'neg' : 'best'}">${a.deg_slope_s_per_lap.toFixed(3)}</td><td class="num">${a.field_median_slope.toFixed(3)}</td><td class="num">${a.robust_z}</td><td><span class="pill ${a.direction === 'high_deg' ? 'warn' : 'ok'}">${a.direction === 'high_deg' ? 'HIGH DEG' : 'LOW DEG'}</span></td></tr>`).join('');
+    el('degTrigger').textContent = `trigger: ${anoms[0].code} stint ${anoms[0].stint}, z=${anoms[0].robust_z}`;
+  }
+
+  // ---- driver scatter
+  const dmAll = (R.driver_metrics || []).filter(d => d.n_stints_fitted > 0).slice(0, 14);
+  show('secDrivers', dmAll.length > 0);
+  if (dmAll.length){
+    chart(el('drvChart'), {type:'scatter', data:{datasets:[{
+      data: dmAll.map(d => ({x: d.median_clean_lap_s, y: d.consistency_iqr_s, code: d.code})),
+      backgroundColor: dmAll.map((d, i) => C.teams[d.code] || '#6b7484'), pointRadius:5}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:'MEDIAN CLEAN LAP (S)'}}, y:{title:{display:true, text:'CONSISTENCY IQR (S)  lower = steadier'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw.code}: ${c.parsed.x.toFixed(3)}s / iqr ${c.parsed.y.toFixed(2)}s`}}}}
+    });
+    el('coachLabel').textContent = cf ? `Driver Coach: ${cf.driver}` : 'Driver Coach';
+  }
+
+  // ---- track scatter
+  const tp = (R.track_profiles || []).filter(t => t.pit_loss_s);
+  show('secTracks', tp.length > 0);
+  if (tp.length){
+    const focus = R.race.circuit || (R.race.name === 'Spanish Grand Prix' ? 'Circuit de Barcelona-Catalunya' : null);
+    const isFocus = t => focus && (t.circuit === focus || t.circuit.includes(focus) || focus.includes(t.circuit));
+    chart(el('trkChart'), {type:'scatter', data:{datasets:[{
+      data: tp.map(t => ({x: t.median_deg_slope, y: t.neutralisation_rate, c: t.circuit})),
+      backgroundColor: tp.map(t => isFocus(t) ? C.purple : '#4a5262'),
+      pointRadius: tp.map(t => isFocus(t) ? 7 : 4.5)}]},
+      options:{maintainAspectRatio:false,
+        scales:{x:{title:{display:true, text:'MEDIAN DEG SLOPE (S/LAP)'}}, y:{title:{display:true, text:'NEUTRALISATION RATE'}}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw.c}`}}}}
+    });
+    el('trackFocus').textContent = `payload: track_profiles, focus=${(focus || R.race.name).replace('Circuit de ', '')}`;
+  }
+
+  // ---- compliance
+  const audits = R.compliance_audits || [];
+  show('secCompliance', audits.length > 0);
+  if (audits.length){
+    const rows = [];
+    audits.forEach((a, i) => {
+      a.verdicts.forEach(v => rows.push({plan: i === 0 ? 'plan A (model optimum)' : 'plan B (deliberate fail)', ...v}));
+    });
+    el('compTable').innerHTML =
+     `<tr><th>recommendation</th><th>rule</th><th></th><th>detail</th></tr>` +
+     rows.map(r => `<tr><td>${r.plan}</td><td>${r.rule_id}</td><td><span class="pill ${r.passed ? 'ok' : 'fail'}">${r.passed ? 'PASS' : 'BLOCKED'}</span></td><td style="color:var(--dim)">${esc(r.detail)}</td></tr>`).join('');
+  }
+
+  // ---- briefs
+  Object.entries(BSET).forEach(([id, key]) => setBrief(id, B, key));
+
+  // ---- prediction audit
+  show('secBacktest', BACKTESTS.length > 0);
+  if (BACKTESTS.length){
+    const stats = el('btStats');
+    const fmt = v => v === null || v === undefined ? '&ndash;' : v;
+    stats.innerHTML = BACKTESTS.map(b => {
+      const d = b.deg_summary;
+      return `<div class="stat"><div class="v">${fmt(d.mae_s)}s</div><div class="l">deg MAE &middot; freeze L${b.freeze_lap} (${d.n_stints} stints)</div></div>`;
+    }).join('') + (function(){
+      const calls = BACKTESTS.flatMap(b => b.undercut_calls);
+      if (!calls.length) return '';
+      const hit = calls.filter(c => c.sign_correct).length;
+      const mae = (calls.reduce((a, c) => a + c.abs_error_s, 0) / calls.length).toFixed(2);
+      return `<div class="stat"><div class="v">${hit}/${calls.length}</div><div class="l">undercut sign calls correct</div></div>
+              <div class="stat"><div class="v">${mae}s</div><div class="l">undercut swing abs error (full cycle)</div></div>`;
+    })();
+
+    const calls = BACKTESTS.flatMap(b => b.undercut_calls.map(c => ({...c, freeze: b.freeze_lap})));
+    el('btUcTable').innerHTML = '<tr><th>open call at freeze</th><th>predicted swing</th><th>realized</th><th>error</th></tr>' +
+      (calls.length ? calls.map(c =>
+        `<tr><td>${esc(surname(c.attacker))} vs ${esc(surname(c.defender))} @ L${c.freeze}</td>
+         <td>${c.predicted_swing_s}s</td><td>${c.realized_swing_s}s</td><td>${c.abs_error_s}s</td></tr>`).join('')
+       : '<tr><td colspan="4">no open pit battles at these freeze points</td></tr>');
+
+    el('btDegTable').innerHTML = '<tr><th>freeze</th><th>stints scored</th><th>MAE</th><th>bias</th><th>mature fits (&ge;10 clean laps)</th></tr>' +
+      BACKTESTS.map(b => {
+        const d = b.deg_summary;
+        return `<tr><td>L${b.freeze_lap}</td><td>${d.n_stints}</td><td>${fmt(d.mae_s)}s</td><td>${fmt(d.bias_s)}s</td><td>${fmt(d.mature_fits_mae_s)}s (n=${d.mature_fits_n})</td></tr>`;
+      }).join('');
+  }
+}
+
+render(BAKED_R, BAKED_B, BAKED_BT);
+
+// ---- selectors, drill-downs, predictor: live only when served by scripts/serve_dashboard.py
+(function initSelectors(){
+  if (!location.protocol.startsWith('http')) return;
+  let catalog = null, poller = null, VIEW = 'race', SEQ = 0, RACE_LABEL = '', DRV_SEASON = null;
+  const stale = seq => seq !== SEQ;  // a newer load superseded this one
+  const raceLabel = () => el('selRace').selectedOptions[0]?.textContent ?? '';
+  function showEmpty(year, title, msg){
+    hideAll(); show('secEmpty', true); show('statstrip', false);
+    setHeader(year, title, 'no cached outputs yet');
+    el('emptyText').innerHTML = msg;
+  }
+  window.addEventListener('scroll', () =>
+    el('selbar').classList.toggle('stuck', el('selbar').getBoundingClientRect().top <= 0));
+  const status = s => { el('selStatus').textContent = s; };
+  const busy = on => { el('btnLoad').disabled = on; el('btnRegen').disabled = on; };
+  const api = async path => { const r = await fetch(path); if (!r.ok) throw new Error((await r.text()).slice(0, 140)); return r.json(); };
+  const year = () => parseInt(el('selSeason').value, 10);
+  const hideAll = () => { RACE_SECTIONS.concat(DRILL_SECTIONS).forEach(id => show(id, false)); };
+
+  fetch('/api/seasons').then(r => r.json()).then(cat => {
+    catalog = cat.seasons;
+    const sel = el('selSeason');
+    sel.innerHTML = catalog.map(s => `<option value="${s.year}">${s.year} (${s.source})</option>`).join('');
+    sel.value = String(cat.default_year ?? catalog[catalog.length - 1].year);
+    fillRaces();
+    el('selbar').style.display = 'flex';
+    el('predBadge').style.display = 'flex';
+  }).catch(() => {});
+
+  function season(){ return catalog.find(s => String(s.year) === el('selSeason').value); }
+  function fillRaces(auto){
+    el('selRace').innerHTML = season().races.map(r => `<option value="${r.key}">${esc(r.name)}</option>`).join('');
+    const def = season().races.find(r => r.key === '2024_spanish');
+    if (def) el('selRace').value = def.key;
+    RACE_LABEL = raceLabel();
+    fillSessions();
+    if (auto && VIEW === 'race') loadRace(el('selRace').value, false, true);
+  }
+  async function fillSessions(){
+    const sel = el('selSession');
+    sel.style.display = 'none';
+    sel.innerHTML = '<option value="race">Race</option>';
+    if (VIEW !== 'race') return;
+    try {
+      const d = await api('/api/sessions?key=' + encodeURIComponent(el('selRace').value));
+      if (d.sessions && d.sessions.length){
+        sel.innerHTML = d.sessions.map(s =>
+          `<option value="${s.session_key}" ${s.name === 'Race' ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+        sel.dataset.race = d.sessions.find(s => s.name === 'Race')?.session_key ?? 'race';
+        sel.style.display = '';
+      } else if (d.qualifying && d.qualifying.length){
+        sel.innerHTML = '<option value="race">Race</option><option value="ergast_quali">Qualifying</option>';
+        sel.dataset.race = 'race';
+        sel.dataset.quali = JSON.stringify(d.qualifying);
+        sel.style.display = '';
+      }
+    } catch(e){}
+  }
+
+  // ---------- view switching
+  function setView(v){
+    VIEW = v;
+    ['viewRace','viewDriver','viewSeason'].forEach(id => el(id).classList.remove('on'));
+    el({race:'viewRace', driver:'viewDriver', season:'viewSeason'}[v]).classList.add('on');
+    el('eyebrow').innerHTML = `F1 Agentic Race Analysis &middot; ${{race:'grand prix view', driver:'driver view', season:'season view'}[v]} &middot; deterministic layer + Bedrock agent briefs`;
+    el('selRace').style.display = v === 'race' ? '' : 'none';
+    el('selSession').style.display = 'none';
+    el('selDriver').style.display = v === 'driver' ? '' : 'none';
+    el('btnRegen').style.display = v === 'race' ? '' : 'none';
+    if (v === 'race'){
+      show('statstrip', true);
+      if (LAST) render(LAST.R, LAST.B, LAST.BT);
+      fillSessions();
+    } else {
+      hideAll(); show('statstrip', false);
+      if (v === 'driver') loadDriverView();
+      if (v === 'season') loadSeasonView();
+    }
+  }
+  el('viewRace').addEventListener('click', () => setView('race'));
+  el('viewDriver').addEventListener('click', () => setView('driver'));
+  el('viewSeason').addEventListener('click', () => setView('season'));
+  el('selSeason').addEventListener('change', () => {
+    fillRaces(true);
+    if (VIEW === 'driver') loadDriverView();
+    if (VIEW === 'season') loadSeasonView();
+  });
+  el('selRace').addEventListener('change', () => {
+    RACE_LABEL = raceLabel();
+    fillSessions();
+    loadRace(el('selRace').value, false, true);  // cache-only; never generates by itself
+  });
+  el('selSession').addEventListener('change', () => el('btnLoad').click());
+  el('selDriver').addEventListener('change', () => renderDriver(el('selDriver').value));
+  el('btnLoad').addEventListener('click', () => {
+    if (VIEW === 'race'){
+      const sess = el('selSession');
+      const v = sess.style.display === 'none' ? 'race' : sess.value;
+      if (v === 'ergast_quali') return renderErgastQuali(JSON.parse(sess.dataset.quali));
+      if (v !== 'race' && v !== sess.dataset.race) return loadSession(parseInt(v, 10));
+      loadRace(el('selRace').value, false);
+    } else if (VIEW === 'driver') renderDriver(el('selDriver').value);
+    else loadSeasonView();
+  });
+  el('btnRegen').addEventListener('click', () => loadRace(el('selRace').value, true));
+
+  // ---------- drill-down agent analysis (generated on first view, cached after)
+  async function loadInsightBrief(kind, params, briefId, seq){
+    const p = el(briefId);
+    p.textContent = 'Agent analysing (first view invokes Bedrock; cached after)...';
+    p.style.color = 'var(--faint)';
+    try {
+      const d = await api('/api/insight_brief?kind=' + kind + '&' + new URLSearchParams(params));
+      if (stale(seq)) return;
+      if (d.brief){ p.textContent = d.brief; p.style.color = ''; }
+      else { p.textContent = 'agent unavailable: ' + (d.error ?? 'unknown'); }
+    } catch(e){ if (!stale(seq)) p.textContent = 'agent failed: ' + e.message; }
+  }
+
+  // ---------- race + session loading
+  async function loadRace(key, force, auto){
+    if (poller){ clearInterval(poller); poller = null; }
+    const seq = ++SEQ;
+    busy(true);
+    if (!force){
+      status('checking cache...');
+      try {
+        const bundle = await api('/api/bundle?key=' + encodeURIComponent(key));
+        if (stale(seq) || VIEW !== 'race'){ busy(false); return; }
+        render(bundle.results, bundle.briefs, bundle.backtests);
+        el('btnRegen').textContent = 'regenerate';
+        status(`loaded from ${bundle.from}${bundle.briefs && Object.keys(bundle.briefs).length ? '' : ' (no agent briefs cached)'}`);
+        busy(false);
+        return;
+      } catch(e){}
+      if (auto){
+        // selection changes only read the cache; generation stays an explicit click
+        if (stale(seq) || VIEW !== 'race'){ busy(false); return; }
+        showEmpty(el('selSeason').value, RACE_LABEL,
+          `No cached outputs for <b>${esc(RACE_LABEL)}</b> locally or in S3 yet.<br>` +
+          'Press <b>generate</b> to run the deterministic pipeline, the frozen-clock backtests, and the agent briefs (about a minute).');
+        el('btnRegen').textContent = 'generate';
+        status('not generated yet');
+        busy(false);
+        return;
+      }
+    }
+    status(force ? 'regenerating...' : 'not cached; generating fresh...');
+    const resp = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, force})});
+    if (!resp.ok){ status('generate failed: ' + (await resp.text()).slice(0, 120)); busy(false); return; }
+    poller = setInterval(async () => {
+      const j = await (await fetch('/api/job?key=' + encodeURIComponent(key))).json();
+      if (j.state === 'running'){ status(j.step || 'working...'); return; }
+      clearInterval(poller); poller = null;
+      if (j.state === 'error'){ status('failed: ' + j.error); busy(false); return; }
+      const bundle = await api('/api/bundle?key=' + encodeURIComponent(key));
+      if (!stale(seq) && VIEW === 'race') render(bundle.results, bundle.briefs, bundle.backtests);
+      el('btnRegen').textContent = 'regenerate';
+      status('generated' + (j.note ? ' (' + j.note + ')' : ''));
+      busy(false);
+    }, 1500);
+  }
+
+  async function loadSession(sessionKey){
+    const seq = ++SEQ;
+    busy(true); status('loading session (first time pulls laps)...');
+    try {
+      const d = await api('/api/session_pace?session_key=' + sessionKey);
+      if (stale(seq)) return;
+      hideAll(); show('secSessionView', true); show('statstrip', false);
+      const fastest = d.rows[0];
+      setHeader(d.year, `${RACE_LABEL} - ${d.session_name}`,
+        [esc(d.location), 'session pace',
+         fastest ? `fastest ${esc(fastest.code)} ${esc(fastest.best_s)}s` : null]
+          .filter(Boolean).join(' &middot; '));
+      el('sessTitle').textContent = `${d.session_name} pace - ${d.location}`;
+      el('sessTable').innerHTML =
+        '<tr><th></th><th>driver</th><th class="num">best</th><th class="num">gap</th><th class="num">clean median</th><th class="num">laps</th><th class="num">long-run s/lap</th></tr>' +
+        d.rows.map((r, i) => `<tr><td class="num">${i + 1}</td><td>${esc(r.code)}</td><td class="num">${r.best_s.toFixed(3)}</td><td class="num">${r.gap_to_best_s ? '+' + r.gap_to_best_s.toFixed(3) : '-'}</td><td class="num">${r.median_clean_s ?? '-'}</td><td class="num">${r.n_laps}</td><td class="num">${r.long_run_slope ?? '-'}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      const top = d.rows.slice(0, 12);
+      chart(el('sessChart'), {type:'bar', data:{labels: top.map(r => r.code),
+        datasets:[{data: top.map(r => r.gap_to_best_s), backgroundColor: top.map((r, i) => colorFor(r.code, i))}]},
+        options:{maintainAspectRatio:false, indexAxis:'y',
+          scales:{x:{title:{display:true, text:'GAP TO FASTEST LAP (S)'}}},
+          plugins:{legend:{display:false}}}});
+      status(`${d.session_name} loaded`);
+      loadInsightBrief('session', {session_key: sessionKey}, 'sessBrief', seq);
+    } catch(e){ status('session failed: ' + e.message); }
+    busy(false);
+  }
+
+  function renderErgastQuali(rows){
+    hideAll(); show('secSessionView', true); show('statstrip', false);
+    setHeader(el('selSeason').value, `${RACE_LABEL} - Qualifying`,
+      'classification &middot; Q1 / Q2 / Q3');
+    el('sessBrief').textContent = 'Timed classification only; the deterministic layer fits nothing here.';
+    el('sessBrief').style.color = 'var(--faint)';
+    el('sessTitle').textContent = 'Qualifying classification';
+    el('sessTable').innerHTML =
+      '<tr><th></th><th>driver</th><th class="num">Q1</th><th class="num">Q2</th><th class="num">Q3</th></tr>' +
+      rows.map(r => `<tr><td class="num">${r.position}</td><td>${esc(surname(r.driver))}</td><td class="num">${r.q1 ?? '-'}</td><td class="num">${r.q2 ?? '-'}</td><td class="num">${r.q3 ?? '-'}</td></tr>`).join('');
+    CHARTS.forEach(c => c.destroy()); CHARTS = [];
+    status('qualifying loaded');
+  }
+
+  // ---------- driver drill-down
+  async function loadDriverView(){
+    const seq = ++SEQ;
+    busy(true); status('loading season...');
+    try {
+      const s = await api('/api/season?year=' + year());
+      if (stale(seq) || VIEW !== 'driver') return;
+      DRV_SEASON = s;
+      el('selDriver').innerHTML = s.standings.slice(0, 24).map(d =>
+        `<option value="${d.code}">${esc(d.code)} - ${esc(surname(d.driver))}</option>`).join('');
+      await renderDriver(el('selDriver').value);
+    } catch(e){ status('season failed: ' + e.message); }
+    busy(false);
+  }
+  async function renderDriver(code){
+    if (!code) return;
+    const seq = ++SEQ;
+    busy(true); status('loading driver...');
+    try {
+      const d = await api(`/api/driver?year=${year()}&code=${encodeURIComponent(code)}`);
+      if (stale(seq) || VIEW !== 'driver') return;
+      hideAll(); show('secDriverView', true); show('statstrip', false);
+      const standing = DRV_SEASON?.standings.find(x => x.code === code);
+      const pos = standing ? DRV_SEASON.standings.indexOf(standing) + 1 : null;
+      setHeader(year(), d.driver ?? code,
+        [pos && `championship P${pos}`, standing && `${esc(standing.points)} pts`,
+         standing && `${esc(standing.wins)} wins`, `${d.races.length} rounds`]
+          .filter(Boolean).join(' &middot; '));
+      el('drvTitle').textContent = `${d.driver ?? code} - ${year()} season`;
+      const hasGrid = d.races.some(r => r.grid != null);
+      el('drvSeasonTable').innerHTML =
+        `<tr><th class="num">rd</th><th>grand prix</th>${hasGrid ? '<th class="num">grid</th><th class="num">finish</th><th class="num">+/-</th>' : ''}<th class="num">pts</th><th class="num">total</th></tr>` +
+        d.races.map(r => `<tr><td class="num">${r.round}</td><td>${esc(r.race)}</td>${hasGrid ? `<td class="num">${r.grid ?? '-'}</td><td class="num">${r.finish ?? '-'}</td><td class="num ${r.gained > 0 ? 'pos' : r.gained < 0 ? 'neg' : ''}">${r.gained == null ? '-' : (r.gained > 0 ? '+' : '') + r.gained}</td>` : ''}<td class="num">${r.points}</td><td class="num">${r.cum_points}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      chart(el('drvSeasonChart'), {type:'line', data:{labels: d.races.map(r => r.race),
+        datasets:[{label:'cumulative points', data: d.races.map(r => r.cum_points),
+          borderColor: colorFor(code, 0), backgroundColor: colorFor(code, 0), borderWidth: 2, pointRadius: 2, tension:.25}]},
+        options:{maintainAspectRatio:false, scales:{y:{title:{display:true, text:'CUMULATIVE POINTS'}}},
+          plugins:{legend:{display:false}}}});
+      status(`${code} loaded`);
+      loadInsightBrief('driver', {year: year(), code}, 'drvBrief', seq);
+    } catch(e){ status('driver failed: ' + e.message); }
+    busy(false);
+  }
+
+  // ---------- season drill-down
+  async function loadSeasonView(){
+    const seq = ++SEQ;
+    busy(true); status('loading season...');
+    try {
+      const s = await api('/api/season?year=' + year());
+      if (stale(seq) || VIEW !== 'season') return;
+      hideAll(); show('secSeasonView', true); show('statstrip', false);
+      const lead = s.standings[0];
+      setHeader(s.year, 'Season',
+        [`round ${s.rounds_done} of ${s.rounds_total}`,
+         lead && `${esc(lead.code)} leads on ${esc(lead.points)} pts`]
+          .filter(Boolean).join(' &middot; '));
+      el('seasonTitle').textContent = `${s.year} standings - round ${s.rounds_done} of ${s.rounds_total}`;
+      el('seasonTable').innerHTML =
+        '<tr><th></th><th>driver</th><th>team</th><th class="num">wins</th><th class="num">points</th></tr>' +
+        s.standings.slice(0, 14).map((d, i) =>
+          `<tr><td class="num">${i + 1}</td><td>${esc(d.code)} ${esc(surname(d.driver))}</td><td style="color:var(--dim)">${esc(d.team ?? '')}</td><td class="num">${d.wins}</td><td class="num">${d.points}</td></tr>`).join('');
+      CHARTS.forEach(c => c.destroy()); CHARTS = [];
+      const top = s.standings.slice(0, 6);
+      chart(el('seasonChart'), {type:'line', data:{labels: s.rounds,
+        datasets: top.map((d, i) => ({label: d.code, data: s.progression[d.code],
+          borderColor: colorFor(d.code, i), backgroundColor: colorFor(d.code, i),
+          borderWidth: 1.8, pointRadius: 0, tension:.25}))},
+        options:{maintainAspectRatio:false, scales:{y:{title:{display:true, text:'CUMULATIVE POINTS'}}},
+          plugins:{legend:{position:'top', labels:{boxWidth:10, boxHeight:10}}}}});
+      status('standings loaded');
+      loadInsightBrief('season', {year: year()}, 'seasonBrief', seq);
+    } catch(e){ status('season failed: ' + e.message); }
+    busy(false);
+  }
+
+  // ---------- championship predictor
+  let PRED = null;
+  el('predBadge').addEventListener('click', openPredictor);
+  el('predClose').addEventListener('click', () => { el('predModal').style.display = 'none'; });
+  el('predModal').addEventListener('click', e => { if (e.target === el('predModal')) el('predModal').style.display = 'none'; });
+  el('predDriver').addEventListener('change', () => renderScenario(el('predDriver').value));
+  el('predBriefBtn').addEventListener('click', fetchBrief);
+
+  async function openPredictor(){
+    el('predModal').style.display = 'block';
+    el('predStatus').textContent = 'computing projection...';
+    el('predBriefBtn').disabled = true;  // no driver to brief until the projection lands
+    try {
+      PRED = await api('/api/predictor?year=2026');
+      el('predBriefBtn').disabled = false;
+      el('predTitle').textContent = `2026 Championship Predictor - ${PRED.rounds_left} rounds to go`;
+      el('predTable').innerHTML =
+        '<tr><th></th><th>driver</th><th class="num">pts</th><th class="num">avg/rd</th><th class="num">projected</th><th class="num">P(title)</th><th></th></tr>' +
+        PRED.projection.map((p, i) =>
+          `<tr><td class="num">${i + 1}</td><td>${esc(p.code)} ${esc(surname(p.driver))}</td><td class="num">${p.points}</td><td class="num">${p.avg_points_per_round}</td><td class="num">${p.projected_points}</td><td class="num best">${(p.title_probability * 100).toFixed(1)}%</td><td><div class="probbar"><i style="width:${Math.round(p.title_probability * 100)}%"></i></div></td></tr>`).join('');
+      el('predDriver').innerHTML = PRED.projection.map(p => `<option value="${p.code}">${esc(p.code)}</option>`).join('');
+      el('predMethod').textContent = 'method: ' + PRED.method;
+      renderScenario(PRED.projection[0].code);
+      el('predStatus').textContent = '';
+    } catch(e){ el('predStatus').textContent = 'predictor failed: ' + e.message; }
+  }
+  async function renderScenario(code){
+    const p = PRED.projection.find(x => x.code === code);
+    if (!p) return;
+    const sc = p.scenario;
+    const cell = (v, l) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+    el('predScen').innerHTML =
+      cell(sc.gap_to_leader, 'points behind leader') +
+      cell(PRED.rounds_left, 'rounds left') +
+      cell(sc.max_remaining_points, 'max points remaining') +
+      cell(sc.mathematically_alive ? 'YES' : 'NO', 'mathematically alive') +
+      cell(sc.required_avg_vs_leader_form ?? '-', 'required avg vs leader form') +
+      cell(sc.wins_needed_rest_p2 ?? '-', 'wins needed (P2 elsewhere)');
+    // show a cached outlook instantly; never invoke Bedrock on a mere selection
+    el('predBrief').textContent = 'checking for a cached outlook on ' + code + '...';
+    el('predBrief').style.color = 'var(--faint)';
+    try {
+      const d = await api('/api/predictor_brief?year=2026&cached=1&driver=' + encodeURIComponent(code));
+      if (el('predDriver').value !== code) return;
+      if (d.brief){ el('predBrief').textContent = d.brief; el('predBrief').style.color = ''; }
+      else { el('predBrief').textContent = 'No cached outlook for ' + code + ' yet; press "strategist outlook" to generate one.'; }
+    } catch(e){ el('predBrief').textContent = 'Press "strategist outlook" to generate an outlook for ' + code + '.'; }
+  }
+  async function fetchBrief(){
+    const code = el('predDriver').value;
+    if (!code){ el('predStatus').textContent = 'projection still loading'; return; }
+    el('predStatus').textContent = 'strategist thinking...';
+    el('predBrief').textContent = 'Strategist analysing ' + code + ' (10-20s on first run)...';
+    el('predBrief').style.color = 'var(--faint)';
+    el('predBriefBtn').disabled = true;
+    try {
+      const d = await api('/api/predictor_brief?year=2026&driver=' + encodeURIComponent(code));
+      if (d.brief){ el('predBrief').textContent = d.brief; el('predBrief').style.color = ''; }
+      else { el('predBrief').textContent = 'strategist unavailable: ' + (d.error ?? 'unknown'); el('predBrief').style.color = 'var(--faint)'; }
+      el('predStatus').textContent = '';
+    } catch(e){ el('predStatus').textContent = 'brief failed: ' + e.message; }
+    el('predBriefBtn').disabled = false;
+  }
+})();
+</script>
+</body>
+</html>

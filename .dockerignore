@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+data/openf1/
+outputs/openf1_*
+outputs/session_*
+outputs/season_*
+outputs/predictor_*
+outputs/11326/
+blog/
+docs/
+tests/
+infra/
+*.zip
+.DS_Store

@@ -1,0 +1,13 @@
+data/raw/
+data/openf1/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.DS_Store
+
+# runtime caches; the published Spanish GP reference outputs stay tracked
+outputs/*
+!outputs/2024_spanish/
+src/data/openf1/
+blog/*.md

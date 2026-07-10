@@ -1,0 +1,199 @@
+{
+  "protocol": "frozen-clock: fits use laps 1..N only; scoring uses laps N+1..end",
+  "freeze_lap": 20,
+  "deg_continuation": [
+    {
+      "code": "HUL",
+      "stint": 2,
+      "fit_window": [
+        13,
+        20
+      ],
+      "scored_laps": [
+        21,
+        37
+      ],
+      "n_scored": 17,
+      "n_fit_clean_laps": 6,
+      "pred_slope_s_per_lap": 0.2385,
+      "mae_s": 1.613,
+      "bias_s": 1.569
+    },
+    {
+      "code": "PER",
+      "stint": 2,
+      "fit_window": [
+        14,
+        20
+      ],
+      "scored_laps": [
+        21,
+        30
+      ],
+      "n_scored": 10,
+      "n_fit_clean_laps": 5,
+      "pred_slope_s_per_lap": 0.1245,
+      "mae_s": 0.429,
+      "bias_s": -0.399
+    },
+    {
+      "code": "BOT",
+      "stint": 2,
+      "fit_window": [
+        12,
+        20
+      ],
+      "scored_laps": [
+        21,
+        27
+      ],
+      "n_scored": 7,
+      "n_fit_clean_laps": 7,
+      "pred_slope_s_per_lap": 0.3609,
+      "mae_s": 0.976,
+      "bias_s": 0.976
+    },
+    {
+      "code": "MAG",
+      "stint": 2,
+      "fit_window": [
+        11,
+        20
+      ],
+      "scored_laps": [
+        21,
+        28
+      ],
+      "n_scored": 8,
+      "n_fit_clean_laps": 8,
+      "pred_slope_s_per_lap": 0.0623,
+      "mae_s": 0.902,
+      "bias_s": -0.902
+    },
+    {
+      "code": "OCO",
+      "stint": 2,
+      "fit_window": [
+        14,
+        20
+      ],
+      "scored_laps": [
+        21,
+        36
+      ],
+      "n_scored": 16,
+      "n_fit_clean_laps": 5,
+      "pred_slope_s_per_lap": 0.3671,
+      "mae_s": 2.411,
+      "bias_s": 2.411
+    },
+    {
+      "code": "LEC",
+      "stint": 1,
+      "fit_window": [
+        1,
+        20
+      ],
+      "scored_laps": [
+        21,
+        23
+      ],
+      "n_scored": 3,
+      "n_fit_clean_laps": 18,
+      "pred_slope_s_per_lap": 0.1117,
+      "mae_s": 0.09,
+      "bias_s": -0.021
+    },
+    {
+      "code": "TSU",
+      "stint": 2,
+      "fit_window": [
+        10,
+        20
+      ],
+      "scored_laps": [
+        21,
+        26
+      ],
+      "n_scored": 6,
+      "n_fit_clean_laps": 9,
+      "pred_slope_s_per_lap": 0.0865,
+      "mae_s": 0.502,
+      "bias_s": -0.389
+    },
+    {
+      "code": "ZHO",
+      "stint": 2,
+      "fit_window": [
+        10,
+        20
+      ],
+      "scored_laps": [
+        21,
+        40
+      ],
+      "n_scored": 20,
+      "n_fit_clean_laps": 9,
+      "pred_slope_s_per_lap": 0.259,
+      "mae_s": 2.657,
+      "bias_s": 2.657
+    }
+  ],
+  "deg_summary": {
+    "n_stints": 8,
+    "mae_s": 1.198,
+    "bias_s": 0.738,
+    "mature_fits_mae_s": 0.09,
+    "mature_fits_n": 1
+  },
+  "undercut_calls": [
+    {
+      "attacker": "Lewis Hamilton",
+      "defender": "Oscar Piastri",
+      "attacker_pit_lap": 16,
+      "defender_pit_lap": 21,
+      "observed_by_freeze_s": -10.41,
+      "modeled_remainder_s": 25.17,
+      "predicted_swing_s": 14.76,
+      "realized_swing_s": 15.87,
+      "sign_correct": true,
+      "abs_error_s": 1.11
+    }
+  ],
+  "undercut_summary": {
+    "n_calls": 1,
+    "sign_hit_rate": 1.0,
+    "mean_abs_error_s": 1.11
+  },
+  "pit_window": [
+    {
+      "code": "LEC",
+      "predicted_optimal_lap": 28,
+      "actual_pit_lap": 24,
+      "posthoc_optimal_lap": 21,
+      "prediction_at_horizon_boundary": false,
+      "lap_error_vs_posthoc": 7,
+      "actual_left_on_table_s": 0.8
+    },
+    {
+      "code": "NOR",
+      "predicted_optimal_lap": 26,
+      "actual_pit_lap": 23,
+      "posthoc_optimal_lap": 17,
+      "prediction_at_horizon_boundary": false,
+      "lap_error_vs_posthoc": 9,
+      "actual_left_on_table_s": 4.38
+    },
+    {
+      "code": "PIA",
+      "predicted_optimal_lap": 24,
+      "actual_pit_lap": 21,
+      "posthoc_optimal_lap": 15,
+      "prediction_at_horizon_boundary": false,
+      "lap_error_vs_posthoc": 9,
+      "actual_left_on_table_s": 4.34
+    }
+  ],
+  "session": "Spanish Grand Prix",
+  "pit_loss_s": 22.61
+}

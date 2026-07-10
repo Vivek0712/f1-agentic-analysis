@@ -1,0 +1,150 @@
+<mxfile host="app.diagrams.net" modified="2026-07-05T12:00:00.000Z" agent="Claude" version="21.0.0" type="device">
+  <diagram name="Agentic Race Analysis on AWS" id="f1-agentic-arch">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Agentic Race Analysis on Amazon Bedrock: latency-tiered design" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="LLM agents never sit on the sub-second pit-call path. They consume fitted parameters, not raw telemetry." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#5A6B7B;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Sources column -->
+        <mxCell id="src-box" value="Data sources" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="src-live" value="Live timing feed&#xa;(licensed) / FastF1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#8C4FFF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="135" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="src-hist" value="Historical laps + pit stops&#xa;(Ergast schema, offline demo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#8C4FFF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="200" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="src-wx" value="Trackside weather" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#8C4FFF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="265" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Ingestion -->
+        <mxCell id="kinesis" value="Kinesis&#xa;Data Streams" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_data_streams;" vertex="1" parent="1">
+          <mxGeometry x="290" y="120" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-norm" value="Lambda&#xa;(normalize)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-lake" value="S3 telemetry lake&#xa;(Parquet per session)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
+          <mxGeometry x="515" y="120" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="glue" value="Glue catalog&#xa;+ Athena" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.glue;" vertex="1" parent="1">
+          <mxGeometry x="625" y="120" width="64" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- Deterministic layer -->
+        <mxCell id="det-box" value="Deterministic layer (every number is computed here)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7E6;strokeColor=#D79B00;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="260" width="500" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="fargate" value="ECS Fargate task&#xa;per session" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.fargate;" vertex="1" parent="1">
+          <mxGeometry x="315" y="300" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="det-list" value="stint segmentation + fuel-corrected Theil-Sen deg fits&#xa;circuit pit loss (median over stops)&#xa;realized undercut swings (pit battles)&#xa;degradation anomaly flags (robust z)&#xa;counterfactual pit-lap curves&#xa;compliance rules engine -&gt; immutable audit records" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontColor=#232F3E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="420" y="295" width="355" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Payload contract -->
+        <mxCell id="payload" value="Payload contract: structured JSON of fitted parameters. No raw telemetry crosses this line." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=#232F3E;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="500" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Tier 1 slow loop -->
+        <mxCell id="tier1" value="Tier 1: slow loop (30-120s, Strands on AgentCore Runtime + Memory)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6F6F7;strokeColor=#00A4A6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="590" width="405" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="eventbridge" value="EventBridge&#xa;60s cadence" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;" vertex="1" parent="1">
+          <mxGeometry x="145" y="630" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="agentcore" value="AgentCore Runtime&#xa;Strands Agents (Claude)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;" vertex="1" parent="1">
+          <mxGeometry x="265" y="630" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="memory" value="AgentCore Memory&#xa;previous brief + session summary&#xa;/summaries/{actorId}/{sessionId}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#01A88D;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="618" width="145" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="e-mem" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=1.5;strokeColor=#01A88D;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="agentcore" target="memory">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1-agents" value="Stint Analyst &#183; Rival Watcher&#xa;Deg Explainer &#183; Compliance Guardian" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00A4A6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="145" y="745" width="280" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Tier 2 post session -->
+        <mxCell id="tier2" value="Tier 2: post-session (minutes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9F3E6;strokeColor=#7AA116;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="590" width="400" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="stepfn" value="Step Functions&#xa;on session end" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.step_functions;" vertex="1" parent="1">
+          <mxGeometry x="585" y="630" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="batch2" value="Bedrock batch inference&#xa;batch_input.jsonl" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;" vertex="1" parent="1">
+          <mxGeometry x="705" y="630" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2-agents" value="Driver Coach &#183; Race Reporter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7AA116;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="585" y="745" width="280" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Tier 3 cross season -->
+        <mxCell id="tier3" value="Tier 3: cross-season (scheduled batch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2E8F7;strokeColor=#9673A6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="590" width="330" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="batch3" value="Bedrock batch inference&#xa;24 races x agents, one job" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;" vertex="1" parent="1">
+          <mxGeometry x="1025" y="630" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3-agents" value="Track Historian&#xa;(circuit archetypes, transfer priors)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673A6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1025" y="745" width="280" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Governance / audit -->
+        <mxCell id="gov-box" value="Governance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEDEC;strokeColor=#DD344C;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="100" width="330" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-audit" value="S3 audit bucket&#xa;(Object Lock, immutable)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#7AA116;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="140" width="64" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="gov-list" value="Rules engine verdicts per recommendation:&#xa;compound rules, pit window bounds,&#xa;stint life limits, advisory-only gate&#xa;&#xa;Audit record carries payload hash,&#xa;model ID, ruleset version&#xa;&#xa;Agents explain verdicts, never override" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontColor=#232F3E;spacing=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="140" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch" value="CloudWatch&#xa;(latency, token cost per tier)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="270" width="64" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- Consumers -->
+        <mxCell id="dash" value="Timing-screen dashboard: gap trace, counterfactual curves, undercut ledger, anomaly desk, agent briefs, audit log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#232F3E;strokeColor=#232F3E;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="890" width="670" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Excluded path callout -->
+        <mxCell id="excluded" value="Explicitly out of scope for agents: the pit call itself (sub-second, precomputed strategy trees)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=6 6;fillColor=none;strokeColor=#DD344C;fontColor=#DD344C;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="src-live" target="kinesis"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="kinesis" target="lambda-norm"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="lambda-norm" target="s3-lake"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="s3-lake" target="glue"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="src-hist" target="det-box"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="130" y="470" /><mxPoint x="360" y="470" /></Array></mxGeometry></mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s3-lake" target="det-box"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#D79B00;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="det-box" target="payload"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#00A4A6;" edge="1" parent="1" source="payload" target="tier1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="320" y="565" /></Array></mxGeometry></mxCell>
+        <mxCell id="e9" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#7AA116;" edge="1" parent="1" source="payload" target="tier2"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="760" y="565" /></Array></mxGeometry></mxCell>
+        <mxCell id="e10" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673A6;" edge="1" parent="1" source="payload" target="tier3"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1100" y="565" /></Array></mxGeometry></mxCell>
+        <mxCell id="e11" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#DD344C;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="det-box" target="gov-box"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="tier1" target="dash"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="tier2" target="dash"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=0;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="tier3" target="dash"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="footer" value="Repo: f1-agentic-analysis &#183; Results: 2024 Spanish GP, 62 stint fits, 18 pit battles, pit loss 22.61s &#183; Offline path fully reproducible" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontColor=#5A6B7B;" vertex="1" parent="1">
+          <mxGeometry x="40" y="950" width="900" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,8 @@
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+boto3>=1.34        # live agent runs only
+pytest>=7.0        # tests
+matplotlib>=3.7    # blog/README figures (scripts/build_figures.py)
+strands-agents>=1.45     # slow-loop agent apps
+bedrock-agentcore>=1.17  # AgentCore Runtime + Memory (deployment)
